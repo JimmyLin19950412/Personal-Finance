@@ -48,6 +48,8 @@ public class personalFinance extends Application {
         ArrayList<String> stockNames = new ArrayList<String>();
         //holds the data read from API endpoint
         String readData;
+        //holds the prices of stocks
+        ArrayList<Double> stockPrices = new ArrayList<Double>();
 
         //create combo box object that holds years
         ComboBox years = new ComboBox();
@@ -99,6 +101,8 @@ public class personalFinance extends Application {
         readStocksFile(stocks, stockNames);
         //calls getStockPrices method. passing an arraylist of stock names. the method will retrieve the prices of each stock
         readData = getStockPrices(stockNames);
+        //calls method to parse read data
+        parseReadData(readData, stockPrices, stockNames.size());
     }
 
     //populates the ComboBox years and months with the years starting from initial recording to current year and the months in a year
@@ -327,5 +331,49 @@ public class personalFinance extends Application {
 
         //return empty data
         return stockNames;
+    }
+
+    //parses the read data. will obtain the prices of stocks and places them inside an array list
+    //Parameters: String to read from, ArayList to add prices to, Integer is the size of ArrayList that holds the stock names
+    public void parseReadData(String readData, ArrayList<Double> stockPrices, int stockNamesSize) {
+        //variable that holds what value to look for in read data
+        String lookFor = "\"delayedPrice\":";
+        //variable to hold delimiter for when price of stock ends
+        String delimiter = ",";
+        //temp variable to what is being read
+        String temp = "";
+        //varaible to hold current location of substring
+        int currentLocation = 0;
+        //holds the current size of stockPrices
+        int currentSize = 0;
+        //loops through readData while currentSize is less than stockNamesSize
+        while (currentSize < stockNamesSize) {
+            //if the read data starting at position currentLocation and ending at position currentLocaiton + lookFor.length() is equal to the string that we are looking for (lookFor)
+            if(readData.substring(currentLocation, currentLocation + lookFor.length()).equals(lookFor)) {
+                //set currentLocation to end of lookFor string
+                currentLocation = currentLocation + lookFor.length();
+                //loop that adds characters to temp until it finds the delimiter
+                //while current substring is not equal to delimiter
+                while(!readData.substring(currentLocation, currentLocation + 1).equals(delimiter)) {
+                    //add read character to temp
+                    temp = temp + readData.substring(currentLocation, currentLocation + 1);
+                    //increase currentLocation by 1, move forward 1 position
+                    currentLocation++;
+                }
+                //converts temp to integer and adds it to array list
+                stockPrices.add(Double.parseDouble(temp));
+                //resets temp
+                temp = "";
+                //increase currentLocation by 1, move forward 1 position
+                currentLocation++;
+                //increase crrentSize by 1, found the price of a stock
+                currentSize++;
+            }
+            //if current substring is not equal to what we are looking for (lookFor)
+            else {
+                //increase currentLocation by 1, move forward 1 position
+                currentLocation++;
+            }
+        }
     }
 }
