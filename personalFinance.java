@@ -108,7 +108,7 @@ public class personalFinance extends Application {
         //call readExpensesFile method. Pass a file to read from and the GridPane expenses to add data to
         readExpensesFile(expensesFile, expenses);
         //call method to get earnings file name based off of whats seleced on ComboBox years and ComboBox months
-        //earningsFile = getEarningsFile();
+        earningsFile = getEarningsFile(years.getValue().toString(), months.getValue().toString());
         //call readEarningsFile method. Pass a file to read from and the GridPane expenses to add data to
 
         //call method getStockNamesAmount to get obtain stock names and stock amount
@@ -167,14 +167,24 @@ public class personalFinance extends Application {
         });
     }
 
-    //determine file name based off of what is selected in ComboBox years and ComboBox months
-    //Parameters: ComboBox years selection, ComboBox months selection
+    //determine expenses file name based off of what is selected in ComboBox years and ComboBox months
+    //Parameters: String year, String month
     public String getExpensesFile(String year, String month) {
         //variable that holds current month
         //array to hold the months of the year
         String monthArray[] = {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"};
         //file is set to the desitnation of files\currentYear\monthNumber_monthName.csv
-        return "files\\" + year + "\\" + (Arrays.asList(monthArray).indexOf(month)+1) + "_" + month + ".csv";
+        return "files\\" + year + "\\" + (Arrays.asList(monthArray).indexOf(month)+1) + "_" + month + "\\" + "expenses.csv";
+    }
+
+    //determine earnings file name based off of what is seleced in ComboBox eyars and ComboBox months
+    //Parameters: String year, String month
+    public String getEarningsFile(String year, String month) {
+        //variable that holds current month
+        //array to hold the months of the year
+        String monthArray[] = {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"};
+        //file is set to the desitnation of files\currentYear\monthNumber_monthName.csv
+        return "files\\" + year + "\\" + (Arrays.asList(monthArray).indexOf(month)+1) + "_" + month + "\\" + "earnings.csv";
     }
 
     //read from file that contains expenses
