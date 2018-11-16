@@ -2,6 +2,8 @@
 package code; //places compiled code into code directory
 
 //required for java
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
@@ -42,23 +44,29 @@ public class personalFinance extends Application {
     //start method
     @Override
     public void start(Stage primaryStage) {
-        //holds file to look at
-        String file;
-        //holds the names of stocks
-        ArrayList<String> stockNames = new ArrayList<String>();
+        //holds expenses file to look at
+        String expensesFile;
+        //holds earnings file to look at
+        String earningsFile;
         //holds the data read from API endpoint
         String readData;
+        //holds the names of stocks
+        ArrayList<String> stockNames = new ArrayList<String>();
+        //holds the amount/number of stocks bought
+        ArrayList<String> stockAmount = new ArrayList<String>();
         //holds the prices of stocks
-        ArrayList<Double> stockPrices = new ArrayList<Double>();
+        ArrayList<String> stockPrices = new ArrayList<String>();
 
         //create combo box object that holds years
         ComboBox years = new ComboBox();
         //create combo box object that holds months
         ComboBox months = new ComboBox();
-        //create new GridPane object to hold data read from expensesfiles
+        //create new GridPane object to hold data read from expenses files
         GridPane expenses = new GridPane();
         //create new GridPane object to hold data read from stocks file
         GridPane stocks = new GridPane();
+        //create new GridPane object to hold earnings
+        GridPane earnings = new GridPane();
         //create new GridPane object to hold menus
         GridPane menuContainer = new GridPane();
         //create new Pane object that holds everything
@@ -67,6 +75,8 @@ public class personalFinance extends Application {
         ScrollPane scrollpaneExpenses = new ScrollPane(expenses);
         //create new SCrollPane object that holds stocks GridPane
         ScrollPane scrollpaneStocks = new ScrollPane(stocks);
+        //create new ScrollPane object that holds earnings GridPane
+        ScrollPane scrollpaneEarnings = new ScrollPane(earnings);
         //creates a new scene that holds root with dimensions width, height.
         Scene scene = new Scene(root, 750, 750);
 
@@ -80,7 +90,7 @@ public class personalFinance extends Application {
         root.setTop(menuContainer);
         root.setLeft(scrollpaneStocks);
         root.setCenter(scrollpaneExpenses);
-        root.setRight(new Label("Right"));
+        root.setRight(scrollpaneEarnings);
         root.setBottom(new Label("Bottom"));
         //set the title of the window
         primaryStage.setTitle("Personal Finance");
@@ -93,16 +103,22 @@ public class personalFinance extends Application {
 
         //call method to populate ComboBox years and months. Adds functionality to them as well
         populateComboBoxYears(years, months, expenses);
-        //call method get file name based off of whats selected on ComboBox years and ComboBox months
-        file = getExpensesFile(years.getValue().toString(), months.getValue().toString());
-        //call readExpenses method. Pass a file to read from and the gridpane expenses to add data to
-        readExpensesFile(file, expenses);
-        //call getStocks method to get the stock prices
-        readStocksFile(stocks, stockNames);
+        //call method get expenses file name based off of whats selected on ComboBox years and ComboBox months
+        expensesFile = getExpensesFile(years.getValue().toString(), months.getValue().toString());
+        //call readExpensesFile method. Pass a file to read from and the GridPane expenses to add data to
+        readExpensesFile(expensesFile, expenses);
+        //call method to get earnings file name based off of whats seleced on ComboBox years and ComboBox months
+        //earningsFile = getEarningsFile();
+        //call readEarningsFile method. Pass a file to read from and the GridPane expenses to add data to
+
+        //call method getStockNamesAmount to get obtain stock names and stock amount
+        getStockNamesAmount(stockNames, stockAmount);
         //calls getStockPrices method. passing an arraylist of stock names. the method will retrieve the prices of each stock
         readData = getStockPrices(stockNames);
-        //calls method to parse read data
+        //calls parseReadData method to parse read data
         parseReadData(readData, stockPrices, stockNames.size());
+        //call readStocks method to populate GridPane stocks with stock names, stock amount, and stock prices
+        readStocks(stocks, stockNames, stockAmount, stockPrices);
     }
 
     //populates the ComboBox years and months with the years starting from initial recording to current year and the months in a year
@@ -139,15 +155,15 @@ public class personalFinance extends Application {
         //.addListener(property of item itself, old item, new item)
         years.getSelectionModel().selectedItemProperty().addListener((v, oldValue, newValue) ->{ 
             //calls method determineFile to obtain file name
-            String file = getExpensesFile(years.getValue().toString(), months.getValue().toString());
+            String expensesFile = getExpensesFile(years.getValue().toString(), months.getValue().toString());
             //calls method readExpenses to read the file
-            readExpensesFile(file, expenses);
+            readExpensesFile(expensesFile, expenses);
         });
         months.getSelectionModel().selectedItemProperty().addListener((v, oldValue, newValue) ->{ 
             //calls method determineFile to obtain file name
-            String file = getExpensesFile(years.getValue().toString(), months.getValue().toString());
+            String expensesFile = getExpensesFile(years.getValue().toString(), months.getValue().toString());
             //calls method readExpenses to read the file
-            readExpensesFile(file, expenses);
+            readExpensesFile(expensesFile, expenses);
         });
     }
 
@@ -163,14 +179,14 @@ public class personalFinance extends Application {
 
     //read from file that contains expenses
     //Parameters: File to read from, GridPane to add data to
-    public void readExpensesFile(String file, GridPane expenses) {
+    public void readExpensesFile(String expensesFile, GridPane expenses) {
         //clears expenses GridPane
         expenses.getChildren().clear();
 
         //try to open file
         try {
             //creates object scanner that opens up file to read
-            Scanner scanner = new Scanner(new File(file));
+            Scanner scanner = new Scanner(new File(expensesFile));
             //splits input by delimiter
             scanner.useDelimiter("[,\\r\\n]+");
             
@@ -220,63 +236,52 @@ public class personalFinance extends Application {
     }
 
     //read file and returns an array that holds stocks and number of stocks
-    //Parameters: GridPane to add elements to
-    public void readStocksFile(GridPane stocks, ArrayList<String> stockNames) {
+    //Parameters: GridPane to add elements to, ArrayList that holds stockNames, ArrayList that holds stockAmount, ArrayList that holds stockPrices
+    public void readStocks(GridPane stocks, ArrayList<String> stockNames, ArrayList<String> stockAmount, ArrayList<String> stockPrices) {
+        //creates DecimalFormat object that determines the number of decimal places
+        DecimalFormat df = new DecimalFormat("#.###");
+        //rounsd the last positional places of DecimalFormat down
+        df.setRoundingMode(RoundingMode.FLOOR);
+        //variables to determine row position
+        int row = 0;
+
+        //for loop that loops through arralylists and adds their values to GridPane
+        for(int i = 0; i < stockNames.size(); i++) {
+            //add stock name to GridPane
+            stocks.add(new Label(stockNames.get(i)), 0, row);
+            //add stock amount to GridPane
+            stocks.add(new Label(stockAmount.get(i)), 1, row);
+            //add stock price to Gridpane
+            stocks.add(new Label(stockPrices.get(i)), 2, row);
+            //add total cost of stocks (stock amount * stock prices)
+            stocks.add(new Label(df.format(Double.parseDouble(stockAmount.get(i)) * Double.parseDouble(stockPrices.get(i)))), 3, row);
+            //increase row by 1, new stock name
+            row++;
+        }
+    }
+
+    //method that obtains the names and amount of stocks bought
+    //Parameters: ArrayList to add stock names to, ArrayList to add number/amount bought to
+    public void getStockNamesAmount(ArrayList<String> stockNames, ArrayList<String> stockAmount) {
         try {
             //creates object scanner that opens up file to read
             Scanner scanner = new Scanner(new File("files\\stocks.csv"));
             //splits input by delimiter
             scanner.useDelimiter("[,\\r\\n]+");
-
-            //creates an ArrayList that holds a String inputs
-            ArrayList<String> array = new ArrayList<String>();
-            //variables to determine column and row position
-            int column = 0;
-            int row = 0;
-            int count = 0;
-
-            //while file has input
-            while(scanner.hasNext() == true)
-            {
-                //add input to ArrayList
-                array.add(scanner.next());
-                //create new label to hold data
-                Label temp = new Label(array.get(array.size() - 1));
-                //if count is 0 then current scanner is on a stock name and not price
-                if(count == 0) {
-                    //add stock name to arraylist
-                    stockNames.add(temp.getText());
-                    //count increases by one so next scanner element is not added (stock amount)
-                    count++; 
-                }
-                //if count is not 0 then reset it to 0 because next element is stock name
-                else {
-                    count = 0;
-                }
-                //Stock name, Stock amount
-                //if column is less than 1 (on current stock)
-                if(column <= 1) {
-                    //add item to table
-                    stocks.add(temp, column, row);
-                    //increase column by 1 (next element)
-                    column++;
-                }
-                else {
-                    //reset column to 0 (new sto k)
-                    column = 0;
-                    //increase row by 1 (next stok)
-                    row++;
-                    //add element to table
-                    stocks.add(temp, column, row);
-                    //increase column by 1 (next element)
-                    column++;
-                }
+            
+            //while not at end of file
+            //stocks.csv is formmated: stockName, numberOfStock
+            while(scanner.hasNext()) {
+                //adds stock name to arraylist
+                stockNames.add(scanner.next());
+                //add number of stock to arraylist
+                stockAmount.add(scanner.next());
             }
 
             //close scanner
             scanner.close();
         }
-        catch (FileNotFoundException e) {
+        catch (FileNotFoundException e){
             //prints error in command line
             System.out.println(e);
         }
@@ -335,7 +340,7 @@ public class personalFinance extends Application {
 
     //parses the read data. will obtain the prices of stocks and places them inside an array list
     //Parameters: String to read from, ArayList to add prices to, Integer is the size of ArrayList that holds the stock names
-    public void parseReadData(String readData, ArrayList<Double> stockPrices, int stockNamesSize) {
+    public void parseReadData(String readData, ArrayList<String> stockPrices, int stockNamesSize) {
         //variable that holds what value to look for in read data
         String lookFor = "\"delayedPrice\":";
         //variable to hold delimiter for when price of stock ends
@@ -361,7 +366,7 @@ public class personalFinance extends Application {
                     currentLocation++;
                 }
                 //converts temp to integer and adds it to array list
-                stockPrices.add(Double.parseDouble(temp));
+                stockPrices.add(temp);
                 //resets temp
                 temp = "";
                 //increase currentLocation by 1, move forward 1 position
