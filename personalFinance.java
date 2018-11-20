@@ -67,6 +67,12 @@ public class personalFinance extends Application {
         GridPane stocks = new GridPane();
         //create new GridPane object to hold earnings
         GridPane earnings = new GridPane();
+        //create new GridPane object to hold summary of all expenses/earnings/stocks/etc.
+        GridPane containerSummary = new GridPane();
+        //create new GridPane object to hold yearly summary
+        GridPane yearlySummary = new GridPane();
+        //create new GridPane object to hold monthly summary
+        GridPane monthlySummary = new GridPane();
         //create new GridPane object to hold menus
         GridPane menuContainer = new GridPane();
         //create new Pane object that holds everything
@@ -83,16 +89,22 @@ public class personalFinance extends Application {
         //Horizontal gap between each element inside GridPane
         expenses.setHgap(10);
         earnings.setHgap(10);
+        containerSummary.setHgap(150);
+        yearlySummary.setHgap(10);
+        monthlySummary.setHgap(10);
         stocks.setHgap(10);
-        //adding menu options to menuContainer
+        //adding menu options/ComboBox to menuContainer
         menuContainer.add(years, 3, 0);
         menuContainer.add(months, 5, 0);
+        //adding monthly and yearly summary to summary container
+        containerSummary.add(yearlySummary, 0, 0);
+        containerSummary.add(monthlySummary, 2, 0);
         //adding elements to BorderPane
         root.setTop(menuContainer);
         root.setLeft(scrollpaneStocks);
         root.setCenter(scrollpaneExpenses);
         root.setRight(scrollpaneEarnings);
-        root.setBottom(new Label("Bottom"));
+        root.setBottom(containerSummary);
         //set the title of the window
         primaryStage.setTitle("Personal Finance");
         //add scene to stage
@@ -103,29 +115,33 @@ public class personalFinance extends Application {
         primaryStage.show();
 
         //call method to populate ComboBox years and months. Adds functionality to them as well
-        populateComboBoxYears(years, months, expenses, earnings);
+        populateComboBoxYears(years, months, expenses, earnings, monthlySummary);
+
+        //call method to get obtain stock names and stock amount
+        getStockNamesAmount(stockNames, stockAmount);
+        //calls getStockPrices me11thod. passing an arraylist of stock names. the method will retrieve the prices of each stock
+        readData = getStockPrices(stockNames);
+        //calls method to parse read data
+        parseReadData(readData, stockPrices, stockNames.size());
+        //call method to populate GridPane stocks with stock names, stock amount, and stock prices
+        populateStocks(stocks, stockNames, stockAmount, stockPrices);
+
         //call method get expenses file name based off of whats selected on ComboBox years and ComboBox months
         expensesFile = getExpensesFile(years.getValue().toString(), months.getValue().toString());
-        //call readExpensesFile method. Pass a file to read from and the GridPane expenses to add data to
-        readExpensesFile(expensesFile, expenses);
         //call method to get earnings file name based off of whats seleced on ComboBox years and ComboBox months
         earningsFile = getEarningsFile(years.getValue().toString(), months.getValue().toString());
-        //call readEarningsFile method. Pass a file to read from and the GridPane expenses to add data to
-        readEarningsFile(earningsFile, earnings);
-        //call method getStockNamesAmount to get obtain stock names and stock amount
-        getStockNamesAmount(stockNames, stockAmount);
-        //calls getStockPrices method. passing an arraylist of stock names. the method will retrieve the prices of each stock
-        readData = getStockPrices(stockNames);
-        //calls parseReadData method to parse read data
-        parseReadData(readData, stockPrices, stockNames.size());
-        //call readStocks method to populate GridPane stocks with stock names, stock amount, and stock prices
-        readStocks(stocks, stockNames, stockAmount, stockPrices);
+        //call method to pass a file to read from and the GridPane expenses to add data to
+        populateExpenses(expensesFile, expenses);
+        //call method to pass a file to read from and the GridPane expenses to add data to
+        populateEarnings(earningsFile, earnings);
+        //calls method to calculate monthly summary
+        calculateMonthlyExpenses(expensesFile, monthlySummary);
     }
 
     //populates the ComboBox years and months with the years starting from initial recording to current year and the months in a year
     //adds functionality to ComboBoxes
-    //Parameters: ComboBox to add years to, ComboBox to add months to, GridPane to add data to, GridPane to add data to
-    public void populateComboBoxYears(ComboBox years, ComboBox months, GridPane expenses, GridPane earnings) {
+    //Parameters: ComboBox to add years to, ComboBox to add months to, GridPane to add data to, GridPane to add data to, GridPane to add data to
+    public void populateComboBoxYears(ComboBox years, ComboBox months, GridPane expenses, GridPane earnings, GridPane monthlySummary) {
         //start year to count from. changes based on the year when START recording expenses
         Integer startYear = 2018;
         //variable to get current year
@@ -160,9 +176,11 @@ public class personalFinance extends Application {
             //calls method to obtain earnings file name
             String earningsFile = getEarningsFile(years.getValue().toString(), months.getValue().toString());
             //calls method to read the expenses file
-            readExpensesFile(expensesFile, expenses);
+            populateExpenses(expensesFile, expenses);
             //calls method to read earnings file
-            readEarningsFile(earningsFile, earnings);
+            populateEarnings(earningsFile, earnings);
+            //calls method to calculate monthly summary
+            calculateMonthlyExpenses(expensesFile, monthlySummary);
         });
         months.getSelectionModel().selectedItemProperty().addListener((v, oldValue, newValue) ->{ 
             //calls method to obtain expenses file name
@@ -170,9 +188,11 @@ public class personalFinance extends Application {
             //calls method to obtain earnings file name
             String earningsFile = getEarningsFile(years.getValue().toString(), months.getValue().toString());
             //calls method to read the expenses file
-            readExpensesFile(expensesFile, expenses);
+            populateExpenses(expensesFile, expenses);
             //calls method to read earnings file
-            readEarningsFile(earningsFile, earnings);
+            populateEarnings(earningsFile, earnings);
+            //calls method to calculate monthly summary
+            calculateMonthlyExpenses(expensesFile, monthlySummary);
         });
     }
 
@@ -198,7 +218,7 @@ public class personalFinance extends Application {
 
     //read from expenses file that contains expenses
     //Parameters: String (file) to read from, GridPane to add data to
-    public void readExpensesFile(String expensesFile, GridPane expenses) {
+    public void populateExpenses(String expensesFile, GridPane expenses) {
         //clears expenses GridPane
         expenses.getChildren().clear();
 
@@ -256,7 +276,7 @@ public class personalFinance extends Application {
 
     //read from earnings file that contians earnings
     //Parameters: String (file) to read from, GridPane to add data to
-    public void readEarningsFile(String earningsFile, GridPane earnings) {
+    public void populateEarnings(String earningsFile, GridPane earnings) {
         //clears expenses GridPane
         earnings.getChildren().clear();
 
@@ -314,7 +334,7 @@ public class personalFinance extends Application {
 
     //read file and returns an array that holds stocks and number of stocks
     //Parameters: GridPane to add elements to, ArrayList that holds stockNames, ArrayList that holds stockAmount, ArrayList that holds stockPrices
-    public void readStocks(GridPane stocks, ArrayList<String> stockNames, ArrayList<String> stockAmount, ArrayList<String> stockPrices) {
+    public void populateStocks(GridPane stocks, ArrayList<String> stockNames, ArrayList<String> stockAmount, ArrayList<String> stockPrices) {
         //creates DecimalFormat object that determines the number of decimal places
         DecimalFormat df = new DecimalFormat("#.###");
         //rounsd the last positional places of DecimalFormat down
@@ -457,5 +477,122 @@ public class personalFinance extends Application {
                 currentLocation++;
             }
         }
+    }
+
+    //calculates monthly expenses based off of file read
+    //Parameters: String to read file from, GridPane to add data to
+    public void calculateMonthlyExpenses(String expensesFile, GridPane monthlySummary) {
+        //clears monthly summary
+        monthlySummary.getChildren().clear();
+        //creates DecimalFormat object that determines the number of decimal places
+        DecimalFormat df = new DecimalFormat("#.##");
+        //rounsd the last positional places of DecimalFormat down
+        df.setRoundingMode(RoundingMode.FLOOR);
+
+        //variable to hold total entertainment expenses
+        Double entertainment = Double.valueOf(0.00);
+        //variable to hold total investing expenses
+        Double investing = Double.valueOf(0.00);
+        //variable to hold total bills expenses
+        Double bills = Double.valueOf(0.00);
+        //variable to hold total gas expenses
+        Double gas = Double.valueOf(0.00);
+        //variable to hold total groceries expenses
+        Double groceries = Double.valueOf(0.00);
+        //variable to hold total other expenses
+        Double other = Double.valueOf(0.00);
+        //arraylist to hold purchase types
+        ArrayList<String> purchaseType = new ArrayList<String>();
+        //prepopulate purchaseTypes with: E - Entertainment, I - Investing, B - Bills, G - Gas, Gr - Groceries, O - Other
+        purchaseType.add("E");
+        purchaseType.add("I");
+        purchaseType.add("B");
+        purchaseType.add("G");
+        purchaseType.add("Gr");
+        purchaseType.add("O");
+
+        //try to open file
+        try {
+            //creates object scanner that opens up file to read
+            Scanner scanner = new Scanner(new File(expensesFile));
+            //splits input by delimiter
+            scanner.useDelimiter("[,\\r\\n]+");
+
+            //while file has another line to parse
+            //string read from file = name,amount,date,purchaseMethod,purcahseType
+            while(scanner.hasNextLine()) {
+                //holds name of purcahse
+                String name = scanner.next();
+                //holds amount of purchase
+                Double amount = Double.parseDouble(scanner.next());
+                //holds date of purchase
+                String date = scanner.next();
+                //holds purchase method
+                String method = scanner.next();
+                //holds purchase type
+                String type = scanner.next();
+                
+                //add the purcahse amount to appropriate total depending on purchaseType
+                switch(type) {
+                    case "E":
+                        entertainment = entertainment + amount;
+                        break;
+                    case "I":
+                        investing = investing + amount;
+                        break;
+                    case "B":
+                        bills = bills + amount;
+                        break;
+                    case "G":
+                        gas = gas + amount;
+                        break;
+                    case "Gr":
+                        groceries = groceries + amount;
+                        break;
+                    case "O":
+                        other = other + amount;
+                        break;
+                    default:
+                        System.out.println(type + ": Not valid");
+                        break;
+                }
+            }
+            //closes scanner
+            scanner.close();
+            
+            //add elements to GridPane
+            monthlySummary.add(new Label("Entertainment:"), 0, 0);
+            monthlySummary.add(new Label(df.format(entertainment)), 1, 0);
+            monthlySummary.add(new Label("Investing:"), 0, 1);
+            monthlySummary.add(new Label(df.format(investing)), 1, 1);
+            monthlySummary.add(new Label("Bills:"), 0, 2);
+            monthlySummary.add(new Label(df.format(bills)), 1, 2);
+            monthlySummary.add(new Label("Gas:"), 0, 3);
+            monthlySummary.add(new Label(df.format(gas)), 1, 3);
+            monthlySummary.add(new Label("Groceries:"), 0, 4);
+            monthlySummary.add(new Label(df.format(groceries)), 1, 4);
+            monthlySummary.add(new Label("Other:"), 0, 5);
+            monthlySummary.add(new Label(df.format(other)), 1, 5);
+            monthlySummary.add(new Label("Total:"), 0, 6);
+            monthlySummary.add(new Label(df.format(entertainment + investing + bills + gas + groceries + other)), 1, 6);
+        }
+        //unable to open file
+        catch (FileNotFoundException e) {
+            //prints error in command line
+            System.out.println(e);
+            //prints error on screen
+            monthlySummary.add(new Label(e.toString()), 0, 0);
+        }
+    }
+
+    //calculates yearly expenses based off of file read
+    //Parameters: GridPane to add data to
+    public void calculateYearlyExpenses (GridPane yearlySummary) {
+        //clears monthly summary
+        yearlySummary.getChildren().clear();
+        //creates DecimalFormat object that determines the number of decimal places
+        DecimalFormat df = new DecimalFormat("#.##");
+        //rounsd the last positional places of DecimalFormat down
+        df.setRoundingMode(RoundingMode.FLOOR);
     }
 }
