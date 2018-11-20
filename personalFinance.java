@@ -82,6 +82,7 @@ public class personalFinance extends Application {
 
         //Horizontal gap between each element inside GridPane
         expenses.setHgap(10);
+        earnings.setHgap(10);
         stocks.setHgap(10);
         //adding menu options to menuContainer
         menuContainer.add(years, 3, 0);
@@ -102,7 +103,7 @@ public class personalFinance extends Application {
         primaryStage.show();
 
         //call method to populate ComboBox years and months. Adds functionality to them as well
-        populateComboBoxYears(years, months, expenses);
+        populateComboBoxYears(years, months, expenses, earnings);
         //call method get expenses file name based off of whats selected on ComboBox years and ComboBox months
         expensesFile = getExpensesFile(years.getValue().toString(), months.getValue().toString());
         //call readExpensesFile method. Pass a file to read from and the GridPane expenses to add data to
@@ -110,7 +111,7 @@ public class personalFinance extends Application {
         //call method to get earnings file name based off of whats seleced on ComboBox years and ComboBox months
         earningsFile = getEarningsFile(years.getValue().toString(), months.getValue().toString());
         //call readEarningsFile method. Pass a file to read from and the GridPane expenses to add data to
-
+        readEarningsFile(earningsFile, earnings);
         //call method getStockNamesAmount to get obtain stock names and stock amount
         getStockNamesAmount(stockNames, stockAmount);
         //calls getStockPrices method. passing an arraylist of stock names. the method will retrieve the prices of each stock
@@ -123,8 +124,8 @@ public class personalFinance extends Application {
 
     //populates the ComboBox years and months with the years starting from initial recording to current year and the months in a year
     //adds functionality to ComboBoxes
-    //Parameters: ComboBox to add years to, ComboBox to add months to, GridPane to add data to
-    public void populateComboBoxYears(ComboBox years, ComboBox months, GridPane expenses) {
+    //Parameters: ComboBox to add years to, ComboBox to add months to, GridPane to add data to, GridPane to add data to
+    public void populateComboBoxYears(ComboBox years, ComboBox months, GridPane expenses, GridPane earnings) {
         //start year to count from. changes based on the year when START recording expenses
         Integer startYear = 2018;
         //variable to get current year
@@ -154,16 +155,24 @@ public class personalFinance extends Application {
         //listener for when ComboBox years and months is changed
         //.addListener(property of item itself, old item, new item)
         years.getSelectionModel().selectedItemProperty().addListener((v, oldValue, newValue) ->{ 
-            //calls method determineFile to obtain file name
+            //calls method to obtain expenses file name
             String expensesFile = getExpensesFile(years.getValue().toString(), months.getValue().toString());
-            //calls method readExpenses to read the file
+            //calls method to obtain earnings file name
+            String earningsFile = getEarningsFile(years.getValue().toString(), months.getValue().toString());
+            //calls method to read the expenses file
             readExpensesFile(expensesFile, expenses);
+            //calls method to read earnings file
+            readEarningsFile(earningsFile, earnings);
         });
         months.getSelectionModel().selectedItemProperty().addListener((v, oldValue, newValue) ->{ 
-            //calls method determineFile to obtain file name
+            //calls method to obtain expenses file name
             String expensesFile = getExpensesFile(years.getValue().toString(), months.getValue().toString());
-            //calls method readExpenses to read the file
+            //calls method to obtain earnings file name
+            String earningsFile = getEarningsFile(years.getValue().toString(), months.getValue().toString());
+            //calls method to read the expenses file
             readExpensesFile(expensesFile, expenses);
+            //calls method to read earnings file
+            readEarningsFile(earningsFile, earnings);
         });
     }
 
@@ -187,8 +196,8 @@ public class personalFinance extends Application {
         return "files\\" + year + "\\" + (Arrays.asList(monthArray).indexOf(month)+1) + "_" + month + "\\" + "earnings.csv";
     }
 
-    //read from file that contains expenses
-    //Parameters: File to read from, GridPane to add data to
+    //read from expenses file that contains expenses
+    //Parameters: String (file) to read from, GridPane to add data to
     public void readExpensesFile(String expensesFile, GridPane expenses) {
         //clears expenses GridPane
         expenses.getChildren().clear();
@@ -242,6 +251,64 @@ public class personalFinance extends Application {
             System.out.println(e);
             //prints error on screen
             expenses.add(new Label(e.toString()), 0, 0);
+        }
+    }
+
+    //read from earnings file that contians earnings
+    //Parameters: String (file) to read from, GridPane to add data to
+    public void readEarningsFile(String earningsFile, GridPane earnings) {
+        //clears expenses GridPane
+        earnings.getChildren().clear();
+
+        //try to open file
+        try {
+            //creates object scanner that opens up file to read
+            Scanner scanner = new Scanner(new File(earningsFile));
+            //splits input by delimiter
+            scanner.useDelimiter("[,\\r\\n]+");
+            
+            //creates an ArrayList that holds a String inputs
+            ArrayList<String> array = new ArrayList<String>();
+            //variables to determine column and row position
+            int column = 0;
+            int row = 0;
+
+            //while file has input
+            while(scanner.hasNext() == true)
+            {
+                //add input to ArrayList
+                array.add(scanner.next());
+                //create new label to hold data
+                Label temp = new Label(array.get(array.size() - 1));
+                //Name, Amount, Date, Payement Method, Category
+                //if column is less than 4 (on current purcahse)
+                if(column <= 3) {
+                    //add item to table
+                    earnings.add(temp, column, row);
+                    //increase column by 1 (next element)
+                    column++;
+                }
+                else {
+                    //reset column to 0 (new purchase)
+                    column = 0;
+                    //increase row by 1 (next purchase)
+                    row++;
+                    //add element to table
+                    earnings.add(temp, column, row);
+                    //increase column by 1 (next element)
+                    column++;
+                }
+            }
+
+            //close scanner
+            scanner.close();
+        }
+        //unable to open file
+        catch (FileNotFoundException e) {
+            //prints error in command line
+            System.out.println(e);
+            //prints error on screen
+            earnings.add(new Label(e.toString()), 0, 0);
         }
     }
 

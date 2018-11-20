@@ -10,7 +10,8 @@ Inside each year folder needs 12 months folder. labeled 1_January, 2_February, 3
 
 Inside each months folder needs 2 csv files: expenses.csv and earnings.csv
   .csv files may be empty
-  if not empty, csv files need to be formmatted: NameOfPurchase, Amount, Date, PurchaseMethod, TypeOfPurchase
+  if not empty, expenses csv files need to be formmatted: NameOfPurchase, Amount, Date, PurchaseMethod, TypeOfPurchase
+  if not empty, earnings csv files need to be formmatted: TypeOfEarnings, Amount, Date, Notes
 
 In the same directory as year(s) folders. Need a stocks.csv file
   format of stocks.csv: NameOfStock, NumberOfStocks
