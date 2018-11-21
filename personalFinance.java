@@ -65,22 +65,28 @@ public class personalFinance extends Application {
         GridPane expenses = new GridPane();
         //create new GridPane object to hold data read from stocks file
         GridPane stocks = new GridPane();
+        //create new GridPane object that holds data read from bonds file
+        GridPane bonds = new GridPane();
         //create new GridPane object to hold earnings
         GridPane earnings = new GridPane();
-        //create new GridPane object to hold summary of all expenses/earnings/stocks/etc.
-        GridPane containerSummary = new GridPane();
         //create new GridPane object to hold yearly summary
         GridPane yearlySummary = new GridPane();
         //create new GridPane object to hold monthly summary
         GridPane monthlySummary = new GridPane();
         //create new GridPane object to hold menus
         GridPane menuContainer = new GridPane();
+        //create new GridPane object to hold stocks and bonds
+        GridPane investingContainer = new GridPane();
+        //create new GridPane object to hold summary of all expenses/earnings/stocks/etc.
+        GridPane containerSummary = new GridPane();
         //create new Pane object that holds everything
         BorderPane root = new BorderPane();
         //create new ScrollPane object that holds expenses GridPane
         ScrollPane scrollpaneExpenses = new ScrollPane(expenses);
-        //create new SCrollPane object that holds stocks GridPane
+        //create new ScrollPane object that holds stocks GridPane
         ScrollPane scrollpaneStocks = new ScrollPane(stocks);
+        //create new ScrollPane object that holds bonds
+        ScrollPane scrollpaneBonds = new ScrollPane(bonds);
         //create new ScrollPane object that holds earnings GridPane
         ScrollPane scrollpaneEarnings = new ScrollPane(earnings);
         //creates a new scene that holds root with dimensions width, height.
@@ -89,19 +95,24 @@ public class personalFinance extends Application {
         //Horizontal gap between each element inside GridPane
         expenses.setHgap(10);
         earnings.setHgap(10);
-        containerSummary.setHgap(85);
+        investingContainer.setVgap(10);
+        bonds.setHgap(10);
+        containerSummary.setHgap(170);
         yearlySummary.setHgap(10);
         monthlySummary.setHgap(10);
         stocks.setHgap(10);
         //adding menu options/ComboBox to menuContainer
-        menuContainer.add(years, 3, 0);
-        menuContainer.add(months, 5, 0);
+        menuContainer.add(years, 0, 0);
+        menuContainer.add(months, 1, 0);
+        //adding stocks and bonds to investing container
+        investingContainer.add(scrollpaneStocks, 0, 0);
+        investingContainer.add(scrollpaneBonds, 0, 1);
         //adding monthly and yearly summary to summary container
         containerSummary.add(yearlySummary, 0, 0);
-        containerSummary.add(monthlySummary, 2, 0);
+        containerSummary.add(monthlySummary, 1, 0);
         //adding elements to BorderPane
         root.setTop(menuContainer);
-        root.setLeft(scrollpaneStocks);
+        root.setLeft(investingContainer);
         root.setCenter(scrollpaneExpenses);
         root.setRight(scrollpaneEarnings);
         root.setBottom(containerSummary);
@@ -125,6 +136,8 @@ public class personalFinance extends Application {
         parseReadData(readData, stockPrices, stockNames.size());
         //call method to populate GridPane stocks with stock names, stock amount, and stock prices
         populateStocks(stocks, stockNames, stockAmount, stockPrices);
+        //call method to populate bonds GridPane
+        populateBonds(bonds);
 
         //call method get expenses file name based off of whats selected on ComboBox years and ComboBox months
         expensesFile = getExpensesFile(years.getValue().toString(), months.getValue().toString());
@@ -216,11 +229,18 @@ public class personalFinance extends Application {
         return "files\\" + year + "\\" + (Arrays.asList(monthArray).indexOf(month)+1) + "_" + month + "\\" + "earnings.csv";
     }
 
-    //read from expenses file that contains expenses
+    //read from expenses file that contains expenses and populate expenses GridPane
     //Parameters: String (file) to read from, GridPane to add data to
     public void populateExpenses(String expensesFile, GridPane expenses) {
         //clears expenses GridPane
         expenses.getChildren().clear();
+
+        //add titel to expenses
+        expenses.add(new Label("Name"), 0, 0);
+        expenses.add(new Label("Amount"), 1, 0);
+        expenses.add(new Label("Date"), 2, 0);
+        expenses.add(new Label("Method"), 3, 0);
+        expenses.add(new Label("Type"), 4, 0);
 
         //try to open file
         try {
@@ -233,7 +253,7 @@ public class personalFinance extends Application {
             ArrayList<String> array = new ArrayList<String>();
             //variables to determine column and row position
             int column = 0;
-            int row = 0;
+            int row = 1;
 
             //while file has input
             while(scanner.hasNext() == true)
@@ -274,11 +294,17 @@ public class personalFinance extends Application {
         }
     }
 
-    //read from earnings file that contians earnings
+    //read from earnings file that contians earnings and populates earnings GridPane
     //Parameters: String (file) to read from, GridPane to add data to
     public void populateEarnings(String earningsFile, GridPane earnings) {
         //clears expenses GridPane
         earnings.getChildren().clear();
+
+        //add title to earnings
+        earnings.add(new Label("Type"), 0, 0);
+        earnings.add(new Label("Amount"), 1, 0);
+        earnings.add(new Label("Date"), 2, 0);
+        earnings.add(new Label("Note"), 3, 0);
 
         //try to open file
         try {
@@ -291,7 +317,7 @@ public class personalFinance extends Application {
             ArrayList<String> array = new ArrayList<String>();
             //variables to determine column and row position
             int column = 0;
-            int row = 0;
+            int row = 1;
 
             //while file has input
             while(scanner.hasNext() == true)
@@ -332,7 +358,7 @@ public class personalFinance extends Application {
         }
     }
 
-    //read file and returns an array that holds stocks and number of stocks
+    //read from arraylist and populates GridPane with stock names, amount, and prices
     //Parameters: GridPane to add elements to, ArrayList that holds stockNames, ArrayList that holds stockAmount, ArrayList that holds stockPrices
     public void populateStocks(GridPane stocks, ArrayList<String> stockNames, ArrayList<String> stockAmount, ArrayList<String> stockPrices) {
         //creates DecimalFormat object that determines the number of decimal places
@@ -342,7 +368,14 @@ public class personalFinance extends Application {
         //variable to hold total
         Double total = Double.valueOf(0.00);
         //variables to determine row position
-        int row = 0;
+        int row = 2;
+
+        //add title to stocks GridPane
+        stocks.add(new Label("Stocks:"), 0, 0);
+        stocks.add(new Label("Ticker"), 0, 1);
+        stocks.add(new Label("Amount"), 1, 1);
+        stocks.add(new Label("Price"), 2, 1);
+        stocks.add(new Label("Total"), 3, 1);
 
         //for loop that loops through arralylists and adds their values to GridPane
         for(int i = 0; i < stockNames.size(); i++) {
@@ -359,9 +392,81 @@ public class personalFinance extends Application {
             row++;
         }
 
-        //add total to GridPane
-        stocks.add(new Label("Total:"), 0, row);
-        stocks.add(new Label(df.format(total)), 1, row);
+        //adds total amount (price) next to title
+        stocks.add(new Label(df.format(total)), 1, 0);
+    }
+
+    //read from file and populates bonds GridPane
+    public void populateBonds(GridPane bonds) {
+        //creates DecimalFormat object that determines the number of decimal places
+        DecimalFormat df = new DecimalFormat("#.##");
+        //rounsd the last positional places of DecimalFormat down
+        df.setRoundingMode(RoundingMode.FLOOR);
+
+        //variable holds total price of bonds after maturity
+        Double total = Double.valueOf(0.00);
+        //variable holds total price of bonds after discount
+        Double totalDiscount = Double.valueOf(0.00);
+
+        //add title to GridPane
+        bonds.add(new Label("Bonds:"), 0, 0);
+        bonds.add(new Label("Profit:"), 0, 1);
+        bonds.add(new Label("Price"), 0, 2);
+        bonds.add(new Label("Amount"), 1, 2);
+        bonds.add(new Label("MDate"), 2, 2);
+
+        //try to read from file
+        try {
+            //new scanner object to read from file
+            Scanner scanner = new Scanner(new File("files\\bonds.csv"));
+            //splits input by delimiter
+            scanner.useDelimiter("[,\\r\\n]+");
+
+            //variable to hold price
+            String price;
+            //variable to hold amount of a particular bond
+            String amount;
+            //variable to hold maturity date
+            String MDate;
+
+            int row = 3;
+
+            //while file has input
+            while(scanner.hasNextLine() == true)
+            {
+                //obtain price from file
+                price = scanner.next();
+                //obtain amount from file
+                amount = scanner.next();
+                //obtain maturity date from file
+                MDate = scanner.next();
+
+                //add elements to GridPane
+                bonds.add(new Label(price), 0, row);
+                bonds.add(new Label(amount), 1, row);
+                bonds.add(new Label(MDate), 2, row);
+                //new set of bonds, new row
+                row++;
+
+                //update totals
+                total = total + (100 * Double.parseDouble(amount));
+                totalDiscount = totalDiscount + (Double.parseDouble(price) * Double.parseDouble(amount));
+                
+            }
+            
+            //closes scanner
+            scanner.close();
+        }
+        //unable to read from file
+        catch (FileNotFoundException e) {
+            //prints error in command line
+            System.out.println(e);
+        }
+
+        //add totals next to bonds title
+        bonds.add(new Label(df.format(total)), 1, 0);
+        bonds.add(new Label(df.format(totalDiscount)), 2, 0);
+        bonds.add(new Label(df.format(total - totalDiscount)), 1, 1);
     }
 
     //method that obtains the names and amount of stocks bought
@@ -551,7 +656,7 @@ public class personalFinance extends Application {
 
             //while file has another line to parse
             //string read from file = name,amount,date,purchaseMethod,purcahseType
-            while(scanner.hasNextLine()) {
+            while(scanner.hasNextLine() == true) {
                 //holds name of purcahse
                 String name = scanner.next();
                 //holds amount of purchase
