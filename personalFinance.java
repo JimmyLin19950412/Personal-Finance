@@ -135,7 +135,7 @@ public class personalFinance extends Application {
         //call method to pass a file to read from and the GridPane expenses to add data to
         populateEarnings(earningsFile, earnings);
         //calls method to calculate monthly summary
-        calculateMonthlyExpenses(expensesFile, monthlySummary);
+        calculateMonthlySummary(expensesFile, earningsFile, monthlySummary);
     }
 
     //populates the ComboBox years and months with the years starting from initial recording to current year and the months in a year
@@ -180,7 +180,7 @@ public class personalFinance extends Application {
             //calls method to read earnings file
             populateEarnings(earningsFile, earnings);
             //calls method to calculate monthly summary
-            calculateMonthlyExpenses(expensesFile, monthlySummary);
+            calculateMonthlySummary(expensesFile, earningsFile, monthlySummary);
         });
         months.getSelectionModel().selectedItemProperty().addListener((v, oldValue, newValue) ->{ 
             //calls method to obtain expenses file name
@@ -192,7 +192,7 @@ public class personalFinance extends Application {
             //calls method to read earnings file
             populateEarnings(earningsFile, earnings);
             //calls method to calculate monthly summary
-            calculateMonthlyExpenses(expensesFile, monthlySummary);
+            calculateMonthlySummary(expensesFile, earningsFile, monthlySummary);
         });
     }
 
@@ -336,9 +336,11 @@ public class personalFinance extends Application {
     //Parameters: GridPane to add elements to, ArrayList that holds stockNames, ArrayList that holds stockAmount, ArrayList that holds stockPrices
     public void populateStocks(GridPane stocks, ArrayList<String> stockNames, ArrayList<String> stockAmount, ArrayList<String> stockPrices) {
         //creates DecimalFormat object that determines the number of decimal places
-        DecimalFormat df = new DecimalFormat("#.###");
+        DecimalFormat df = new DecimalFormat("#.##");
         //rounsd the last positional places of DecimalFormat down
         df.setRoundingMode(RoundingMode.FLOOR);
+        //variable to hold total
+        Double total = Double.valueOf(0.00);
         //variables to determine row position
         int row = 0;
 
@@ -352,9 +354,14 @@ public class personalFinance extends Application {
             stocks.add(new Label(stockPrices.get(i)), 2, row);
             //add total cost of stocks (stock amount * stock prices)
             stocks.add(new Label(df.format(Double.parseDouble(stockAmount.get(i)) * Double.parseDouble(stockPrices.get(i)))), 3, row);
+            total = total + (Double.parseDouble(stockAmount.get(i)) * Double.parseDouble(stockPrices.get(i)));
             //increase row by 1, new stock name
             row++;
         }
+
+        //add total to GridPane
+        stocks.add(new Label("Total:"), 0, row);
+        stocks.add(new Label(df.format(total)), 1, row);
     }
 
     //method that obtains the names and amount of stocks bought
@@ -481,7 +488,7 @@ public class personalFinance extends Application {
 
     //calculates monthly expenses based off of file read
     //Parameters: String to read file from, GridPane to add data to
-    public void calculateMonthlyExpenses(String expensesFile, GridPane monthlySummary) {
+    public void calculateMonthlySummary(String expensesFile, String earningsFile, GridPane monthlySummary) {
         //clears monthly summary
         monthlySummary.getChildren().clear();
         //creates DecimalFormat object that determines the number of decimal places
@@ -500,7 +507,21 @@ public class personalFinance extends Application {
         //variable to hold total groceries expenses
         Double groceries = Double.valueOf(0.00);
         //variable to hold total other expenses
-        Double other = Double.valueOf(0.00);
+        Double otherExpenses = Double.valueOf(0.00);
+        //variable to hold total of all expenses
+        Double totalExpenses = Double.valueOf(0.00);
+
+        //variable to hold dividend earnings
+        Double dividend = Double.valueOf(0.00);
+        //variable to hold paycheck earnings
+        Double paycheck = Double.valueOf(0.00);
+        //variable to hold bonds earnings
+        Double bond = Double.valueOf(0.00);
+        //varialbe to hold other earnings
+        Double otherEarnings = Double.valueOf(0.00);
+        //variable to hold total of all earnings
+        Double totalEarnings = Double.valueOf(0.00);
+
         //arraylist to hold purchase types
         ArrayList<String> purchaseType = new ArrayList<String>();
         //prepopulate purchaseTypes with: E - Entertainment, I - Investing, B - Bills, G - Gas, Gr - Groceries, O - Other
@@ -511,7 +532,17 @@ public class personalFinance extends Application {
         purchaseType.add("Gr");
         purchaseType.add("O");
 
-        //try to open file
+        //arraylist to hold earnings types
+        ArrayList<String> earningsType = new ArrayList<String>();
+        earningsType.add("Dividend");
+        earningsType.add("Paycheck");
+        earningsType.add("Bond");
+        earningsType.add("Other");
+
+        //adds label to GridPane
+        monthlySummary.add(new Label("Monthly Summary:"), 0, 0);
+
+        //try to open expenses file
         try {
             //creates object scanner that opens up file to read
             Scanner scanner = new Scanner(new File(expensesFile));
@@ -550,7 +581,7 @@ public class personalFinance extends Application {
                         groceries = groceries + amount;
                         break;
                     case "O":
-                        other = other + amount;
+                        otherExpenses = otherExpenses + amount;
                         break;
                     default:
                         System.out.println(type + ": Not valid");
@@ -559,30 +590,101 @@ public class personalFinance extends Application {
             }
             //closes scanner
             scanner.close();
-            
+
+            //calculate total expenses
+            totalExpenses = entertainment + investing + bills + gas + groceries + otherExpenses;
+
             //add elements to GridPane
-            monthlySummary.add(new Label("Entertainment:"), 0, 0);
-            monthlySummary.add(new Label(df.format(entertainment)), 1, 0);
-            monthlySummary.add(new Label("Investing:"), 0, 1);
-            monthlySummary.add(new Label(df.format(investing)), 1, 1);
-            monthlySummary.add(new Label("Bills:"), 0, 2);
-            monthlySummary.add(new Label(df.format(bills)), 1, 2);
-            monthlySummary.add(new Label("Gas:"), 0, 3);
-            monthlySummary.add(new Label(df.format(gas)), 1, 3);
-            monthlySummary.add(new Label("Groceries:"), 0, 4);
-            monthlySummary.add(new Label(df.format(groceries)), 1, 4);
-            monthlySummary.add(new Label("Other:"), 0, 5);
-            monthlySummary.add(new Label(df.format(other)), 1, 5);
-            monthlySummary.add(new Label("Total:"), 0, 6);
-            monthlySummary.add(new Label(df.format(entertainment + investing + bills + gas + groceries + other)), 1, 6);
+            monthlySummary.add(new Label("Entertainment:"), 0, 1);
+            monthlySummary.add(new Label(df.format(entertainment)), 1, 1);
+            monthlySummary.add(new Label("Investing:"), 0, 2);
+            monthlySummary.add(new Label(df.format(investing)), 1, 2);
+            monthlySummary.add(new Label("Bills:"), 0, 3);
+            monthlySummary.add(new Label(df.format(bills)), 1, 3);
+            monthlySummary.add(new Label("Gas:"), 0, 4);
+            monthlySummary.add(new Label(df.format(gas)), 1, 4);
+            monthlySummary.add(new Label("Groceries:"), 0, 5);
+            monthlySummary.add(new Label(df.format(groceries)), 1, 5);
+            monthlySummary.add(new Label("Other:"), 0, 6);
+            monthlySummary.add(new Label(df.format(otherExpenses)), 1, 6);
+            monthlySummary.add(new Label("Total:"), 0, 7);
+            monthlySummary.add(new Label(df.format(totalExpenses)), 1, 7);
         }
-        //unable to open file
+        //unable to open expenses file
         catch (FileNotFoundException e) {
             //prints error in command line
             System.out.println(e);
             //prints error on screen
             monthlySummary.add(new Label(e.toString()), 0, 0);
         }
+
+        //try to open earnings file
+        try {
+             //creates object scanner that opens up file to read
+             Scanner scanner = new Scanner(new File(earningsFile));
+             //splits input by delimiter
+             scanner.useDelimiter("[,\\r\\n]+");
+
+            //while file has another line to parse
+            //string read from file = name,amount,date,purchaseMethod,purcahseType
+            while(scanner.hasNextLine()) {
+                //holds earnings name
+                String type = scanner.next();
+                //holds earnings amount
+                Double amount = Double.parseDouble(scanner.next());
+                //holds earnings date
+                String date = scanner.next();
+                //holds earnings note
+                String method = scanner.next();
+                
+                //add the purcahse amount to appropriate total depending on purchaseType
+                switch(type) {
+                    case "Dividend":
+                        dividend = dividend + amount;
+                        break;
+                    case "Paycheck":
+                        paycheck = paycheck + amount;
+                        break;
+                    case "Bond":
+                        bond = bond + amount;
+                        break;
+                    case "Other":
+                        otherEarnings = otherEarnings + amount;
+                        break;
+                    default:
+                        System.out.println(type + ": Not valid");
+                        break;
+                }
+            }
+
+            //closes scanner
+            scanner.close();
+
+            //calculate total earnings
+            totalEarnings = paycheck + dividend + bond + otherEarnings;
+
+            //add elements to GridPane
+            monthlySummary.add(new Label("Paycheck:"), 2, 1);
+            monthlySummary.add(new Label(df.format(paycheck)), 3, 1);
+            monthlySummary.add(new Label("Dividend:"), 2, 2);
+            monthlySummary.add(new Label(df.format(dividend)), 3, 2);
+            monthlySummary.add(new Label("Bonds:"), 2, 3);
+            monthlySummary.add(new Label(df.format(bond)), 3, 3);
+            monthlySummary.add(new Label("Others:"), 2, 4);
+            monthlySummary.add(new Label(df.format(otherEarnings)), 3, 4);
+            monthlySummary.add(new Label("Total:"), 2, 5);
+            monthlySummary.add(new Label(df.format(totalEarnings)), 3, 5);
+        }
+        //unable to open earnings files file
+        catch (FileNotFoundException e) {
+            //prints error in command line
+            System.out.println(e);
+            //prints error on screen
+             monthlySummary.add(new Label(e.toString()), 0, 0);
+        }
+
+        //add difference between earnings and expenses to GridPane
+        monthlySummary.add(new Label(df.format(totalEarnings - totalExpenses)), 1, 0);
     }
 
     //calculates yearly expenses based off of file read
