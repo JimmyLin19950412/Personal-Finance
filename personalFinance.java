@@ -4,6 +4,8 @@ package code; //places compiled code into code directory
 //required for java
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
+import java.text.ParseException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
@@ -19,11 +21,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
 import java.util.Calendar;
+import java.util.Date;
 
 //required for javafx
 import javafx.application.Application;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
+import 	javafx.geometry.Insets;
 import javafx.stage.Stage;
 import javafx.scene.Scene;
 import javafx.scene.layout.Pane;
@@ -97,7 +101,8 @@ public class personalFinance extends Application {
         earnings.setHgap(10);
         investingContainer.setVgap(10);
         bonds.setHgap(10);
-        containerSummary.setHgap(170);
+        containerSummary.setHgap(100);
+        containerSummary.setPadding(new Insets(0, 100, 0, 100)); //padding around whole grid; (top, right, bottom, left)
         yearlySummary.setHgap(10);
         monthlySummary.setHgap(10);
         stocks.setHgap(10);
@@ -249,37 +254,24 @@ public class personalFinance extends Application {
             //splits input by delimiter
             scanner.useDelimiter("[,\\r\\n]+");
             
-            //creates an ArrayList that holds a String inputs
-            ArrayList<String> array = new ArrayList<String>();
             //variables to determine column and row position
-            int column = 0;
             int row = 1;
 
             //while file has input
-            while(scanner.hasNext() == true)
+            while(scanner.hasNextLine() == true)
             {
-                //add input to ArrayList
-                array.add(scanner.next());
-                //create new label to hold data
-                Label temp = new Label(array.get(array.size() - 1));
-                //Name, Amount, Date, Payement Method, Category
-                //if column is less than 4 (on current purcahse)
-                if(column <= 4) {
-                    //add item to table
-                    expenses.add(temp, column, row);
-                    //increase column by 1 (next element)
-                    column++;
-                }
-                else {
-                    //reset column to 0 (new purchase)
-                    column = 0;
-                    //increase row by 1 (next purchase)
-                    row++;
-                    //add element to table
-                    expenses.add(temp, column, row);
-                    //increase column by 1 (next element)
-                    column++;
-                }
+                //get name from file
+                expenses.add(new Label(scanner.next()), 0, row);
+                //get amount from file
+                expenses.add(new Label(scanner.next()), 1, row);
+                //get date from file
+                expenses.add(new Label(scanner.next()), 2, row);
+                //get purchase method from file
+                expenses.add(new Label(scanner.next()), 3, row);
+                //get purchase type from file
+                expenses.add(new Label(scanner.next()), 4, row);
+                //add 1 to row, new purchase
+                row++;
             }
 
             //close scanner
@@ -313,37 +305,22 @@ public class personalFinance extends Application {
             //splits input by delimiter
             scanner.useDelimiter("[,\\r\\n]+");
             
-            //creates an ArrayList that holds a String inputs
-            ArrayList<String> array = new ArrayList<String>();
             //variables to determine column and row position
-            int column = 0;
             int row = 1;
 
             //while file has input
-            while(scanner.hasNext() == true)
+            while(scanner.hasNextLine() == true)
             {
-                //add input to ArrayList
-                array.add(scanner.next());
-                //create new label to hold data
-                Label temp = new Label(array.get(array.size() - 1));
-                //Name, Amount, Date, Payement Method, Category
-                //if column is less than 4 (on current purcahse)
-                if(column <= 3) {
-                    //add item to table
-                    earnings.add(temp, column, row);
-                    //increase column by 1 (next element)
-                    column++;
-                }
-                else {
-                    //reset column to 0 (new purchase)
-                    column = 0;
-                    //increase row by 1 (next purchase)
-                    row++;
-                    //add element to table
-                    earnings.add(temp, column, row);
-                    //increase column by 1 (next element)
-                    column++;
-                }
+                //get type from file
+                earnings.add(new Label(scanner.next()), 0, row);
+                //get amount from file
+                earnings.add(new Label(scanner.next()), 1, row);
+                //get date from file
+                earnings.add(new Label(scanner.next()), 2, row);
+                //get note from file
+                earnings.add(new Label(scanner.next()), 3, row);
+                //add 1 to row, new earning
+                row++;
             }
 
             //close scanner
@@ -402,6 +379,10 @@ public class personalFinance extends Application {
         DecimalFormat df = new DecimalFormat("#.##");
         //rounsd the last positional places of DecimalFormat down
         df.setRoundingMode(RoundingMode.FLOOR);
+        //creates a date format object that formats date into "mm/dd/yyy"
+        SimpleDateFormat sdf = new SimpleDateFormat("mm/dd/yyy");
+        //creates date object
+        Date date = new Date();
 
         //variable holds total price of bonds after maturity
         Double total = Double.valueOf(0.00);
@@ -441,17 +422,41 @@ public class personalFinance extends Application {
                 //obtain maturity date from file
                 MDate = scanner.next();
 
-                //add elements to GridPane
+                //add price to GridPane
                 bonds.add(new Label(price), 0, row);
+                //add amount to GridPane
                 bonds.add(new Label(amount), 1, row);
-                bonds.add(new Label(MDate), 2, row);
+
+                //label to hold maturity date
+                Label temp = new Label(MDate);
+                //if maturity date is the same as current date
+
+                //try catch for .parse(MDate) just incase of MDate is in the wrong format
+                try {
+                    if(MDate.equals(sdf.format(date))) {
+                        //change background color of label to green
+                        temp.setStyle("-fx-background-color:green");
+                    }
+                    //maturity date is in the past
+                    else if (sdf.parse(MDate).after(date)) {
+                        //change background color of label to red
+                        temp.setStyle("-fx-background-color:red");
+                    }
+                }
+                catch (ParseException e) {
+                    System.out.println(e);
+                }
+
+
+                //add maturity date to GridPane
+                bonds.add(temp, 2, row);
+                
                 //new set of bonds, new row
                 row++;
 
                 //update totals
                 total = total + (100 * Double.parseDouble(amount));
                 totalDiscount = totalDiscount + (Double.parseDouble(price) * Double.parseDouble(amount));
-                
             }
             
             //closes scanner
