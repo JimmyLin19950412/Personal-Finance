@@ -89,7 +89,7 @@ public class personalFinance extends Application {
         //Horizontal gap between each element inside GridPane
         expenses.setHgap(10);
         earnings.setHgap(10);
-        containerSummary.setHgap(150);
+        containerSummary.setHgap(85);
         yearlySummary.setHgap(10);
         monthlySummary.setHgap(10);
         stocks.setHgap(10);
