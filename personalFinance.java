@@ -294,30 +294,35 @@ public class personalFinance extends Application {
             add.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent e) {
-                    //variable holds temp string to be added to file
-                    String temp = name.getText() + "," + amount.getText() + "," + date.getText() + "," + paymentMethod.getText() + "," + typeOfPurchase.getText();
-                    
-                    try {
-                        //writer to write to file
-                        BufferedWriter writer = new BufferedWriter(new FileWriter(expensesFile, true));
-                        //add enter to file
-                        writer.append("\n");
-                        //writes string to file
-                        writer.append(temp);
-                        //closes file
-                        writer.close();
-
-                        //call method to populate expenses GridPane (reload)
-                        populateExpenses(expensesFile, expenses);
-                        //call method to populate monthly summary GridPane (reload)
-                        calculateMonthlySummary(expensesFile, earningsFile, monthlySummary);
-                        //call method to populate yearly summary GridPane (reload)
-                        calculateYearlySummary(yearlySummary, year);
+                    if(name.getText().trim().equals("") || name.getText().isEmpty() || amount.getText().trim().equals("") || amount.getText().isEmpty() || date.getText().trim().equals("") || date.getText().isEmpty() || paymentMethod.getText().trim().equals("") || paymentMethod.getText().isEmpty() || typeOfPurchase.getText().trim().equals("") || typeOfPurchase.getText().isEmpty()) {
+                        System.out.println("Please fill out all data forms");
                     }
-                    catch (IOException exception) {
-                        System.out.println(exception);
-                    }
+                    else {
+                        //variable holds temp string to be added to file
+                        String temp = name.getText() + "," + amount.getText() + "," + date.getText() + "," + paymentMethod.getText() + "," + typeOfPurchase.getText();
+                        
+                        try {
+                            //writer to write to file
+                            BufferedWriter writer = new BufferedWriter(new FileWriter(expensesFile, true));
+                            //add enter to file
+                            writer.append("\n");
+                            //writes string to file
+                            writer.append(temp);
+                            //closes file
+                            writer.close();
 
+                            //call method to populate expenses GridPane (reload)
+                            populateExpenses(expensesFile, expenses);
+                            //call method to populate monthly summary GridPane (reload)
+                            calculateMonthlySummary(expensesFile, earningsFile, monthlySummary);
+                            //call method to populate yearly summary GridPane (reload)
+                            calculateYearlySummary(yearlySummary, year);
+                        }
+                        catch (IOException exception) {
+                            System.out.println(exception);
+                        }
+
+                    }
                 }
             });
         }
@@ -354,30 +359,34 @@ public class personalFinance extends Application {
             add.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent e) {
-                    //variable holds temp string to be added to file
-                    String temp = earningsType.getText() + "," + amount.getText() + "," + date.getText() + "," + note.getText();
-                    
-                    try {
-                        //writer to write to file
-                        BufferedWriter writer = new BufferedWriter(new FileWriter(earningsFile, true));
-                        //add enter to file
-                        writer.append("\n");
-                        //writes string to file
-                        writer.append(temp);
-                        //closes file
-                        writer.close();
-
-                        //call method to populate earnings GridPane (reload)
-                        populateEarnings(earningsFile, earnings);
-                        //call method to populate monthly summary GridPane (reload)
-                        calculateMonthlySummary(expensesFile, earningsFile, monthlySummary);
-                        //call method to populate yearly summary GridPane (reload)
-                        calculateYearlySummary(yearlySummary, year);
+                    if(earningsType.getText().trim().equals("") || earningsType.getText().isEmpty() || amount.getText().trim().equals("") || amount.getText().isEmpty() || date.getText().trim().equals("") || date.getText().isEmpty() || note.getText().trim().equals("") || note.getText().isEmpty()) {
+                        System.out.println("Please fill out all data forms");
                     }
-                    catch (IOException exception) {
-                        System.out.println(exception);
-                    }
+                    else {
+                        //variable holds temp string to be added to file
+                        String temp = earningsType.getText() + "," + amount.getText() + "," + date.getText() + "," + note.getText();
+                        
+                        try {
+                            //writer to write to file
+                            BufferedWriter writer = new BufferedWriter(new FileWriter(earningsFile, true));
+                            //add enter to file
+                            writer.append("\n");
+                            //writes string to file
+                            writer.append(temp);
+                            //closes file
+                            writer.close();
 
+                            //call method to populate earnings GridPane (reload)
+                            populateEarnings(earningsFile, earnings);
+                            //call method to populate monthly summary GridPane (reload)
+                            calculateMonthlySummary(expensesFile, earningsFile, monthlySummary);
+                            //call method to populate yearly summary GridPane (reload)
+                            calculateYearlySummary(yearlySummary, year);
+                        }
+                        catch (IOException exception) {
+                            System.out.println(exception);
+                        }
+                    }
                 }
             });
         }
@@ -410,28 +419,32 @@ public class personalFinance extends Application {
             add.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent e) {
-                    //variable to hold file directory
-                    File file = new File("files\\bonds.csv");
-                    //variable holds temp string to be added to file
-                    String temp = price.getText() + "," + numberOfBonds.getText() + "," + MDate.getText();
-                    
-                    try {
-                        //writer to write to file
-                        BufferedWriter writer = new BufferedWriter(new FileWriter(file, true));
-                        //add enter to file
-                        writer.append("\n");
-                        //writes string to file
-                        writer.append(temp);
-                        //closes file
-                        writer.close();
-
-                        //call method to populate bond GridPane (reload)
-                        populateBonds(bonds);
+                    if(price.getText().trim().equals("") || price.getText().isEmpty() || numberOfBonds.getText().trim().equals("") || numberOfBonds.getText().isEmpty() || MDate.getText().trim().equals("") || MDate.getText().isEmpty()) {
+                        System.out.println("Please fill out all data forms");
                     }
-                    catch (IOException exception) {
-                        System.out.println(exception);
-                    }
+                    else {
+                        //variable to hold file directory
+                        File file = new File("files\\bonds.csv");
+                        //variable holds temp string to be added to file
+                        String temp = price.getText() + "," + numberOfBonds.getText() + "," + MDate.getText();
+                        
+                        try {
+                            //writer to write to file
+                            BufferedWriter writer = new BufferedWriter(new FileWriter(file, true));
+                            //add enter to file
+                            writer.append("\n");
+                            //writes string to file
+                            writer.append(temp);
+                            //closes file
+                            writer.close();
 
+                            //call method to populate bond GridPane (reload)
+                            populateBonds(bonds);
+                        }
+                        catch (IOException exception) {
+                            System.out.println(exception);
+                        }
+                    }
                 }
             });
         }
