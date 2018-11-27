@@ -146,9 +146,9 @@ public class personalFinance extends Application {
         //call method to populate ComboBox years and months. Adds functionality to them as well
         populateComboBoxYears(years, months, expenses, earnings, monthlySummary, yearlySummary);
         //call method to populate ComboBox add. Adds functionality to them as well
-        populateComboBoxAdd(add, containerAdd, years.getValue().toString(), months.getValue().toString());
+        populateComboBoxAdd(add, containerAdd, years.getValue().toString(), months.getValue().toString(), expenses, monthlySummary, yearlySummary, earnings, bonds);
         //call method to populate GridPane containerAdd
-        populateContainerAdd(add.getValue().toString(), containerAdd, years.getValue().toString(), months.getValue().toString());
+        populateContainerAdd(add.getValue().toString(), containerAdd, years.getValue().toString(), months.getValue().toString(), expenses, monthlySummary, yearlySummary, earnings, bonds);
 
         //call method to get obtain stock names and stock amount
         getStockNamesAmount(stockNames, stockAmount);
@@ -236,8 +236,8 @@ public class personalFinance extends Application {
     }
 
     //populates the ComboBox add with elements. On change will call a method that will change add/subtract the number of text fields that users can input into and add elements to Expenses or Earnings file
-    //Parameters: ComboBox to add elements to, GridPane to add mpdes to - passes to populateContainerAdd(), String that holds year - passes to populateContainerAdd(), String that holds month - passes to populateContainerAdd()
-    public void populateComboBoxAdd(ComboBox add, GridPane containerAdd, String year, String month) {
+    //Parameters: ComboBox to add elements to, GridPane to add mpdes to - passes to populateContainerAdd(), String that holds year - passes to populateContainerAdd(), String that holds month - passes to populateContainerAdd(), GridPane to repopulate/reload - passes to populateContainerAdd(), GridPane to repopulate/reload - passes to populateContainerAdd(), GridPane to repopulate/reload - passes to populateContainerAdd(), GridPane to repopulate/reload - passes to populateContainerAdd(), GridPane to repopulate/reload - passes to populateContainerAdd()
+    public void populateComboBoxAdd(ComboBox add, GridPane containerAdd, String year, String month, GridPane expenses, GridPane monthlySummary, GridPane yearlySummary, GridPane earnings, GridPane bonds) {
         //add elements to ComboBox add
         add.getItems().addAll("Expenses", "Earnings", "Bonds");
         //set default value of ComboBox add
@@ -246,13 +246,17 @@ public class personalFinance extends Application {
         //adds funcionality to ComboBox, when an element is selected to something
         add.getSelectionModel().selectedItemProperty().addListener((v, oldValue, newValue) -> {
             //calls method to add/subtract number of nodes in container add that are needed to add data to specified file
-            populateContainerAdd(add.getValue().toString(), containerAdd, year, month);
+            populateContainerAdd(add.getValue().toString(), containerAdd, year, month, expenses, monthlySummary, yearlySummary, earnings, bonds);
         });
     }
 
     //On change to either one will change add/subtract the number of text fields that users can input into and add elements to Expenses or Earnings file
-    //Parameters: String to determine type of file to add to, GridPane to add data too, String that holds value from ComboBox years, String that holds value from ComboBox months
-    public void populateContainerAdd(String type, GridPane containerAdd, String year, String month) {
+    //Parameters: String to determine type of file to add to, GridPane to add data too, String that holds value from ComboBox years, String that holds value from ComboBox months, GirdPane to repopulate/reload, GridPane to repopulate/reload, GridPane to repopulate/reload, GridPane to repopulate/reload, GridPane to repopulate/reload
+    public void populateContainerAdd(String type, GridPane containerAdd, String year, String month, GridPane expenses, GridPane monthlySummary, GridPane yearlySummary, GridPane earnings, GridPane bonds) {
+        //variable to hold file directory
+        String expensesFile = getExpensesFile(year, month);
+        String earningsFile = getEarningsFile(year, month);
+
         //if ComboBox add selected is Expenses
         if(type.equals("Expenses")) {
             //clears containerAdd
@@ -290,20 +294,25 @@ public class personalFinance extends Application {
             add.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent e) {
-                    //variable to hold file directory
-                    String file = getExpensesFile(year, month);
                     //variable holds temp string to be added to file
                     String temp = name.getText() + "," + amount.getText() + "," + date.getText() + "," + paymentMethod.getText() + "," + typeOfPurchase.getText();
                     
                     try {
                         //writer to write to file
-                        BufferedWriter writer = new BufferedWriter(new FileWriter(file, true));
+                        BufferedWriter writer = new BufferedWriter(new FileWriter(expensesFile, true));
                         //add enter to file
                         writer.append("\n");
                         //writes string to file
                         writer.append(temp);
                         //closes file
                         writer.close();
+
+                        //call method to populate expenses GridPane (reload)
+                        populateExpenses(expensesFile, expenses);
+                        //call method to populate monthly summary GridPane (reload)
+                        calculateMonthlySummary(expensesFile, earningsFile, monthlySummary);
+                        //call method to populate yearly summary GridPane (reload)
+                        calculateYearlySummary(yearlySummary, year);
                     }
                     catch (IOException exception) {
                         System.out.println(exception);
@@ -345,20 +354,25 @@ public class personalFinance extends Application {
             add.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent e) {
-                    //variable to hold file directory
-                    String file = getEarningsFile(year, month);
                     //variable holds temp string to be added to file
                     String temp = earningsType.getText() + "," + amount.getText() + "," + date.getText() + "," + note.getText();
                     
                     try {
                         //writer to write to file
-                        BufferedWriter writer = new BufferedWriter(new FileWriter(file, true));
+                        BufferedWriter writer = new BufferedWriter(new FileWriter(earningsFile, true));
                         //add enter to file
                         writer.append("\n");
                         //writes string to file
                         writer.append(temp);
                         //closes file
                         writer.close();
+
+                        //call method to populate earnings GridPane (reload)
+                        populateEarnings(earningsFile, earnings);
+                        //call method to populate monthly summary GridPane (reload)
+                        calculateMonthlySummary(expensesFile, earningsFile, monthlySummary);
+                        //call method to populate yearly summary GridPane (reload)
+                        calculateYearlySummary(yearlySummary, year);
                     }
                     catch (IOException exception) {
                         System.out.println(exception);
@@ -410,6 +424,9 @@ public class personalFinance extends Application {
                         writer.append(temp);
                         //closes file
                         writer.close();
+
+                        //call method to populate bond GridPane (reload)
+                        populateBonds(bonds);
                     }
                     catch (IOException exception) {
                         System.out.println(exception);
@@ -580,14 +597,13 @@ public class personalFinance extends Application {
 
     //read from file and populates bonds GridPane
     public void populateBonds(GridPane bonds) {
+        //clear bonds GridPane
+        bonds.getChildren().clear();
+
         //creates DecimalFormat object that determines the number of decimal places
         DecimalFormat df = new DecimalFormat("#.##");
         //rounsd the last positional places of DecimalFormat down
         df.setRoundingMode(RoundingMode.FLOOR);
-        //creates a date format object that formats date into "mm/dd/yyy"
-        SimpleDateFormat sdf = new SimpleDateFormat("mm/dd/yyy");
-        //creates date object
-        Date date = new Date();
 
         //variable holds total price of bonds after maturity
         Double total = Double.valueOf(0.00);
@@ -635,24 +651,6 @@ public class personalFinance extends Application {
 
                 //label to hold maturity date
                 Label temp = new Label(MDate);
-                //if maturity date is the same as current date
-
-                //try catch for .parse(MDate) just incase of MDate is in the wrong format
-                try {
-                    if(MDate.equals(sdf.format(date))) {
-                        //change background color of label to green
-                        temp.setStyle("-fx-background-color:green");
-                    }
-                    //maturity date is in the past
-                    else if (sdf.parse(MDate).after(date)) {
-                        //change background color of label to red
-                        temp.setStyle("-fx-background-color:red");
-                    }
-                }
-                catch (ParseException e) {
-                    System.out.println(e);
-                }
-
 
                 //add maturity date to GridPane
                 bonds.add(temp, 2, row);
