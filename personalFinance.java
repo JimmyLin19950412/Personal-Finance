@@ -14,7 +14,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.util.List;
 import java.util.Observable;
 import java.util.ArrayList;
@@ -25,9 +27,11 @@ import java.util.Date;
 
 //required for javafx
 import javafx.application.Application;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
-import 	javafx.geometry.Insets;
+import javafx.geometry.Insets;
 import javafx.stage.Stage;
 import javafx.scene.Scene;
 import javafx.scene.layout.Pane;
@@ -37,6 +41,8 @@ import javafx.scene.paint.Color;
 import javafx.scene.control.Label;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Button;
+import javafx.scene.control.TextField;
 import javafx.scene.image.PixelFormat.Type;
 
 public class personalFinance extends Application {
@@ -61,39 +67,43 @@ public class personalFinance extends Application {
         //holds the prices of stocks
         ArrayList<String> stockPrices = new ArrayList<String>();
 
-        //create combo box object that holds years
+        //ComboBox object that holds years
         ComboBox years = new ComboBox();
-        //create combo box object that holds months
+        //ComboBox object that holds months
         ComboBox months = new ComboBox();
-        //create new GridPane object to hold data read from expenses files
+        //ComboBox object that holds which files to add elements to
+        ComboBox add = new ComboBox();
+        //GridPane object to hold data read from expenses files
         GridPane expenses = new GridPane();
-        //create new GridPane object to hold data read from stocks file
+        //GridPane object to hold data read from stocks file
         GridPane stocks = new GridPane();
-        //create new GridPane object that holds data read from bonds file
+        //GridPane object that holds data read from bonds file
         GridPane bonds = new GridPane();
-        //create new GridPane object to hold earnings
+        //GridPane object to hold earnings
         GridPane earnings = new GridPane();
-        //create new GridPane object to hold yearly summary
+        //GridPane object to hold yearly summary
         GridPane yearlySummary = new GridPane();
-        //create new GridPane object to hold monthly summary
+        //GridPane object to hold monthly summary
         GridPane monthlySummary = new GridPane();
-        //create new GridPane object to hold menus
+        //GridPane object to hold menus
         GridPane menuContainer = new GridPane();
-        //create new GridPane object to hold stocks and bonds
+        //GridPane object to hold stocks and bonds
         GridPane investingContainer = new GridPane();
-        //create new GridPane object to hold summary of all expenses/earnings/stocks/etc.
+        //GridPane object to hold summary of all expenses/earnings/stocks/etc.
         GridPane containerSummary = new GridPane();
-        //create new Pane object that holds everything
+        //GridPane object to hold elements that are needed to add to expenses and earnings file
+        GridPane containerAdd = new GridPane();
+        //BorderPane object that holds everything
         BorderPane root = new BorderPane();
-        //create new ScrollPane object that holds expenses GridPane
+        //ScrollPane object that holds expenses GridPane
         ScrollPane scrollpaneExpenses = new ScrollPane(expenses);
-        //create new ScrollPane object that holds stocks GridPane
+        //ScrollPane object that holds stocks GridPane
         ScrollPane scrollpaneStocks = new ScrollPane(stocks);
-        //create new ScrollPane object that holds bonds
+        //ScrollPane object that holds bonds
         ScrollPane scrollpaneBonds = new ScrollPane(bonds);
-        //create new ScrollPane object that holds earnings GridPane
+        //ScrollPane object that holds earnings GridPane
         ScrollPane scrollpaneEarnings = new ScrollPane(earnings);
-        //creates a new scene that holds root with dimensions width, height.
+        //Scene that holds root with dimensions width, height.
         Scene scene = new Scene(root, 750, 750);
 
         //Horizontal gap between each element inside GridPane
@@ -103,12 +113,15 @@ public class personalFinance extends Application {
         bonds.setHgap(10);
         containerSummary.setHgap(100);
         containerSummary.setPadding(new Insets(0, 50, 0, 50)); //padding around whole grid; (top, right, bottom, left)
+        containerAdd.setPadding(new Insets(0, 20, 0, 20));
         yearlySummary.setHgap(10);
         monthlySummary.setHgap(10);
         stocks.setHgap(10);
         //adding menu options/ComboBox to menuContainer
         menuContainer.add(years, 0, 0);
         menuContainer.add(months, 1, 0);
+        menuContainer.add(add, 2, 0);
+        menuContainer.add(containerAdd, 3, 0);
         //adding stocks and bonds to investing container
         investingContainer.add(scrollpaneStocks, 0, 0);
         investingContainer.add(scrollpaneBonds, 0, 1);
@@ -132,6 +145,10 @@ public class personalFinance extends Application {
 
         //call method to populate ComboBox years and months. Adds functionality to them as well
         populateComboBoxYears(years, months, expenses, earnings, monthlySummary, yearlySummary);
+        //call method to populate ComboBox add. Adds functionality to them as well
+        populateComboBoxAdd(add, containerAdd, years.getValue().toString(), months.getValue().toString());
+        //call method to populate GridPane containerAdd
+        populateContainerAdd(add.getValue().toString(), containerAdd, years.getValue().toString(), months.getValue().toString());
 
         //call method to get obtain stock names and stock amount
         getStockNamesAmount(stockNames, stockAmount);
@@ -190,7 +207,7 @@ public class personalFinance extends Application {
 
         //listener for when ComboBox years and months is changed
         //.addListener(property of item itself, old item, new item)
-        years.getSelectionModel().selectedItemProperty().addListener((v, oldValue, newValue) ->{ 
+        years.getSelectionModel().selectedItemProperty().addListener((v, oldValue, newValue) -> { 
             //calls method to obtain expenses file name
             String expensesFile = getExpensesFile(years.getValue().toString(), months.getValue().toString());
             //calls method to obtain earnings file name
@@ -204,7 +221,7 @@ public class personalFinance extends Application {
             //calls method to calculate yearly summary
             calculateYearlySummary(yearlySummary, years.getValue().toString());
         });
-        months.getSelectionModel().selectedItemProperty().addListener((v, oldValue, newValue) ->{ 
+        months.getSelectionModel().selectedItemProperty().addListener((v, oldValue, newValue) -> { 
             //calls method to obtain expenses file name
             String expensesFile = getExpensesFile(years.getValue().toString(), months.getValue().toString());
             //calls method to obtain earnings file name
@@ -216,6 +233,191 @@ public class personalFinance extends Application {
             //calls method to calculate monthly summary
             calculateMonthlySummary(expensesFile, earningsFile, monthlySummary);
         });
+    }
+
+    //populates the ComboBox add with elements. On change will call a method that will change add/subtract the number of text fields that users can input into and add elements to Expenses or Earnings file
+    //Parameters: ComboBox to add elements to, GridPane to add mpdes to - passes to populateContainerAdd(), String that holds year - passes to populateContainerAdd(), String that holds month - passes to populateContainerAdd()
+    public void populateComboBoxAdd(ComboBox add, GridPane containerAdd, String year, String month) {
+        //add elements to ComboBox add
+        add.getItems().addAll("Expenses", "Earnings", "Bonds");
+        //set default value of ComboBox add
+        add.getSelectionModel().select(0);
+
+        //adds funcionality to ComboBox, when an element is selected to something
+        add.getSelectionModel().selectedItemProperty().addListener((v, oldValue, newValue) -> {
+            //calls method to add/subtract number of nodes in container add that are needed to add data to specified file
+            populateContainerAdd(add.getValue().toString(), containerAdd, year, month);
+        });
+    }
+
+    //On change to either one will change add/subtract the number of text fields that users can input into and add elements to Expenses or Earnings file
+    //Parameters: String to determine type of file to add to, GridPane to add data too, String that holds value from ComboBox years, String that holds value from ComboBox months
+    public void populateContainerAdd(String type, GridPane containerAdd, String year, String month) {
+        //if ComboBox add selected is Expenses
+        if(type.equals("Expenses")) {
+            //clears containerAdd
+            containerAdd.getChildren().clear();
+
+            //textfield object that contains name
+            TextField name = new TextField();
+            //textfield obeject that contains amount
+            TextField amount = new TextField();
+            //textfield that contains date
+            TextField date = new TextField();
+            //textfield that contains payment method
+            TextField paymentMethod = new TextField();
+            //textfield that contains type of purchase
+            TextField typeOfPurchase = new TextField();
+            //button object that will take value from textfields and add to file
+            Button add = new Button("Add");
+            
+            //change the size of textfields
+            name.setPrefColumnCount(5);
+            amount.setPrefColumnCount(5);
+            date.setPrefColumnCount(5);
+            paymentMethod.setPrefColumnCount(5);
+            typeOfPurchase.setPrefColumnCount(5);
+
+            //add node to containerAdd
+            containerAdd.add(name, 0, 0);
+            containerAdd.add(amount, 1, 0);
+            containerAdd.add(date, 2, 0);
+            containerAdd.add(paymentMethod, 3, 0);
+            containerAdd.add(typeOfPurchase, 4, 0);
+            containerAdd.add(add, 5, 0);
+
+            //add functionality to add button
+            add.setOnAction(new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent e) {
+                    //variable to hold file directory
+                    String file = getExpensesFile(year, month);
+                    //variable holds temp string to be added to file
+                    String temp = name.getText() + "," + amount.getText() + "," + date.getText() + "," + paymentMethod.getText() + "," + typeOfPurchase.getText();
+                    
+                    try {
+                        //writer to write to file
+                        BufferedWriter writer = new BufferedWriter(new FileWriter(file, true));
+                        //add enter to file
+                        writer.append("\n");
+                        //writes string to file
+                        writer.append(temp);
+                        //closes file
+                        writer.close();
+                    }
+                    catch (IOException exception) {
+                        System.out.println(exception);
+                    }
+
+                }
+            });
+        }
+        //if ComboBox add selected is Earnings
+        else if(type.equals("Earnings")) {
+            //clears containerAdd
+            containerAdd.getChildren().clear();
+
+            //textfield object that contains earnings type
+            TextField earningsType = new TextField();
+            //textfield obeject that contains amount
+            TextField amount = new TextField();
+            //textfield that contains date
+            TextField date = new TextField();
+            //textfield that contains note
+            TextField note = new TextField();
+            //button object that will take value from textfields and add to file
+            Button add = new Button("Add");
+            
+            //change the size of textfields
+            earningsType.setPrefColumnCount(5);
+            amount.setPrefColumnCount(5);
+            date.setPrefColumnCount(5);
+            note.setPrefColumnCount(5);
+
+            //add node to containerAdd
+            containerAdd.add(earningsType, 0, 0);
+            containerAdd.add(amount, 1, 0);
+            containerAdd.add(date, 2, 0);
+            containerAdd.add(note, 3, 0);
+            containerAdd.add(add, 4, 0);
+
+            //add functionality to add button
+            add.setOnAction(new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent e) {
+                    //variable to hold file directory
+                    String file = getEarningsFile(year, month);
+                    //variable holds temp string to be added to file
+                    String temp = earningsType.getText() + "," + amount.getText() + "," + date.getText() + "," + note.getText();
+                    
+                    try {
+                        //writer to write to file
+                        BufferedWriter writer = new BufferedWriter(new FileWriter(file, true));
+                        //add enter to file
+                        writer.append("\n");
+                        //writes string to file
+                        writer.append(temp);
+                        //closes file
+                        writer.close();
+                    }
+                    catch (IOException exception) {
+                        System.out.println(exception);
+                    }
+
+                }
+            });
+        }
+        //if ComboBox add selected Bonds
+        else if(type.equals("Bonds")) {
+            //clears containerAdd
+            containerAdd.getChildren().clear();
+
+            //textfield object that contains price per bond
+            TextField price = new TextField();
+            //textfield obeject that number of bonds
+            TextField numberOfBonds = new TextField();
+            //textfield that contains maturity date
+            TextField MDate = new TextField();
+            //button object that will take value from textfields and add to file
+            Button add = new Button("Add");
+            
+            //change the size of textfields
+            price.setPrefColumnCount(5);
+            numberOfBonds.setPrefColumnCount(5);
+            MDate.setPrefColumnCount(5);
+
+            //add node to containerAdd
+            containerAdd.add(price, 0, 0);
+            containerAdd.add(numberOfBonds, 1, 0);
+            containerAdd.add(MDate, 2, 0);
+            containerAdd.add(add, 3, 0);
+
+            //add functionality to add button
+            add.setOnAction(new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent e) {
+                    //variable to hold file directory
+                    File file = new File("files\\bonds.csv");
+                    //variable holds temp string to be added to file
+                    String temp = price.getText() + "," + numberOfBonds.getText() + "," + MDate.getText();
+                    
+                    try {
+                        //writer to write to file
+                        BufferedWriter writer = new BufferedWriter(new FileWriter(file, true));
+                        //add enter to file
+                        writer.append("\n");
+                        //writes string to file
+                        writer.append(temp);
+                        //closes file
+                        writer.close();
+                    }
+                    catch (IOException exception) {
+                        System.out.println(exception);
+                    }
+
+                }
+            });
+        }
     }
 
     //determine expenses file name based off of what is selected in ComboBox years and ComboBox months
