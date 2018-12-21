@@ -20,4 +20,4 @@ In the same directory as year(s) folders. Need a bonds.csv file
 	format of bonds.csv: Price per 100, Number of bond, maturity date
 	
 #Notice:
-Project has been abandoned as JavaFX in its most recent version, 11, is no longer supported in JDK. Project is transitioning to html/css/javascript.
+The application works, however it is no longer receiving updates as it has been abandoned. JavaFX, in its most recent version 11, is no longer supported in JDK. Project is transitioning to html/css/javascript.
