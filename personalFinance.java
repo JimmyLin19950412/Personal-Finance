@@ -1,14 +1,8 @@
-
-package code; //places compiled code into code directory
-
 //required for java
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
-import java.text.SimpleDateFormat;
-import java.text.ParseException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
-import java.net.ProtocolException;
 import java.net.URL;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -17,33 +11,27 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
-import java.util.List;
-import java.util.Observable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
 import java.util.Calendar;
-import java.util.Date;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 //required for javafx
 import javafx.application.Application;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
-import javafx.geometry.Orientation;
-import javafx.geometry.Pos;
 import javafx.geometry.Insets;
 import javafx.stage.Stage;
 import javafx.scene.Scene;
-import javafx.scene.layout.Pane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.paint.Color;
 import javafx.scene.control.Label;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
-import javafx.scene.image.PixelFormat.Type;
 
 public class personalFinance extends Application {
     //main method. Required when working with VSCode/IDE
@@ -60,6 +48,8 @@ public class personalFinance extends Application {
         String earningsFile;
         //holds the data read from API endpoint
         String readData;
+        //holds array returned from calculate monthly and yearly
+        Double tempArray[][];
         //holds the names of stocks
         ArrayList<String> stockNames = new ArrayList<String>();
         //holds the amount/number of stocks bought
@@ -68,11 +58,11 @@ public class personalFinance extends Application {
         ArrayList<String> stockPrices = new ArrayList<String>();
 
         //ComboBox object that holds years
-        ComboBox years = new ComboBox();
+        ComboBox<String> years = new ComboBox<String>();
         //ComboBox object that holds months
-        ComboBox months = new ComboBox();
+        ComboBox<String> months = new ComboBox<String>();
         //ComboBox object that holds which files to add elements to
-        ComboBox add = new ComboBox();
+        ComboBox<String> add = new ComboBox<String>();
         //GridPane object to hold data read from expenses files
         GridPane expenses = new GridPane();
         //GridPane object to hold data read from stocks file
@@ -144,9 +134,41 @@ public class personalFinance extends Application {
         primaryStage.show();
 
         //call method to populate ComboBox years and months. Adds functionality to them as well
-        populateComboBoxYears(years, months, expenses, earnings, monthlySummary, yearlySummary);
+        populateComboBoxYears(years, months);
+        //listener for when ComboBox years and months is changed
+        years.getSelectionModel().selectedItemProperty().addListener((v, oldValue, newValue) -> { 
+            //calls method to obtain expenses file name
+            String tempExpensesFile = getExpensesFile(years.getValue().toString(), months.getValue().toString());
+            //calls method to obtain earnings file name
+            String tempEarningsFile = getEarningsFile(years.getValue().toString(), months.getValue().toString());
+            //calls method to read the expenses file
+            populateExpenses(tempExpensesFile, expenses);
+            //calls method to read earnings file
+            populateEarnings(tempEarningsFile, earnings);
+            //calls method to calculate monthly summary
+            calculateMonthlySummary(tempExpensesFile, tempEarningsFile);
+            //calls method to calculate yearly summary
+            calculateYearlySummary(yearlySummary, years.getValue().toString());
+        });
+        months.getSelectionModel().selectedItemProperty().addListener((v, oldValue, newValue) -> { 
+            //calls method to obtain expenses file name
+            String tempExpensesFile = getExpensesFile(years.getValue().toString(), months.getValue().toString());
+            //calls method to obtain earnings file name
+            String tempEarningsFile = getEarningsFile(years.getValue().toString(), months.getValue().toString());
+            //calls method to read the expenses file
+            populateExpenses(tempExpensesFile, expenses);
+            //calls method to read earnings file
+            populateEarnings(tempEarningsFile, earnings);
+            //calls method to calculate monthly summary
+            calculateMonthlySummary(tempExpensesFile, tempEarningsFile);
+        });
         //call method to populate ComboBox add. Adds functionality to them as well
-        populateComboBoxAdd(add, containerAdd, years.getValue().toString(), months.getValue().toString(), expenses, monthlySummary, yearlySummary, earnings, bonds);
+        populateComboBoxAdd(add);
+        //adds funcionality to ComboBox, when an element is selected to something
+        add.getSelectionModel().selectedItemProperty().addListener((v, oldValue, newValue) -> {
+            //calls method to add/subtract number of nodes in container add that are needed to add data to specified file
+            populateContainerAdd(add.getValue().toString(), containerAdd, years.getValue().toString(), months.getValue().toString(), expenses, monthlySummary, yearlySummary, earnings, bonds);
+        });
         //call method to populate GridPane containerAdd
         populateContainerAdd(add.getValue().toString(), containerAdd, years.getValue().toString(), months.getValue().toString(), expenses, monthlySummary, yearlySummary, earnings, bonds);
 
@@ -170,15 +192,18 @@ public class personalFinance extends Application {
         //call method to pass a file to read from and the GridPane expenses to add data to
         populateEarnings(earningsFile, earnings);
         //calls method to calculate monthly summary
-        calculateMonthlySummary(expensesFile, earningsFile, monthlySummary);
+        tempArray = calculateMonthlySummary(expensesFile, earningsFile);
+        //calls method to populate monthlySummary GridPane
+        populateMonthlySummary(monthlySummary, tempArray);
         //calls method to calculate yearly summary
-        calculateYearlySummary(yearlySummary, years.getValue().toString());
+        tempArray = calculateYearlySummary(yearlySummary, years.getValue().toString());
+        //calls method to populate yearlySummary GridPane
+        populateYearlySummary(yearlySummary, tempArray);
     }
 
     //populates the ComboBox years and months with the years starting from initial recording to current year and the months in a year
-    //adds functionality to ComboBoxes
-    //Parameters: ComboBox to add years to, ComboBox to add months to, GridPane to add data to, GridPane to add data to, GridPane to add data to, GridPane to add data to
-    public void populateComboBoxYears(ComboBox years, ComboBox months, GridPane expenses, GridPane earnings, GridPane monthlySummary, GridPane yearlySummary) {
+    //Parameters: ComboBox years to add years to, ComboBox months to add months to
+    public void populateComboBoxYears(ComboBox<String> years, ComboBox<String> months) {
         //start year to count from. changes based on the year when START recording expenses
         Integer startYear = 2018;
         //variable to get current year
@@ -204,54 +229,19 @@ public class personalFinance extends Application {
         months.setVisibleRowCount(12);
         //set default value of ComboBox to current month
         months.getSelectionModel().select(monthArray[currentMonth]);
-
-        //listener for when ComboBox years and months is changed
-        //.addListener(property of item itself, old item, new item)
-        years.getSelectionModel().selectedItemProperty().addListener((v, oldValue, newValue) -> { 
-            //calls method to obtain expenses file name
-            String expensesFile = getExpensesFile(years.getValue().toString(), months.getValue().toString());
-            //calls method to obtain earnings file name
-            String earningsFile = getEarningsFile(years.getValue().toString(), months.getValue().toString());
-            //calls method to read the expenses file
-            populateExpenses(expensesFile, expenses);
-            //calls method to read earnings file
-            populateEarnings(earningsFile, earnings);
-            //calls method to calculate monthly summary
-            calculateMonthlySummary(expensesFile, earningsFile, monthlySummary);
-            //calls method to calculate yearly summary
-            calculateYearlySummary(yearlySummary, years.getValue().toString());
-        });
-        months.getSelectionModel().selectedItemProperty().addListener((v, oldValue, newValue) -> { 
-            //calls method to obtain expenses file name
-            String expensesFile = getExpensesFile(years.getValue().toString(), months.getValue().toString());
-            //calls method to obtain earnings file name
-            String earningsFile = getEarningsFile(years.getValue().toString(), months.getValue().toString());
-            //calls method to read the expenses file
-            populateExpenses(expensesFile, expenses);
-            //calls method to read earnings file
-            populateEarnings(earningsFile, earnings);
-            //calls method to calculate monthly summary
-            calculateMonthlySummary(expensesFile, earningsFile, monthlySummary);
-        });
     }
 
     //populates the ComboBox add with elements. On change will call a method that will change add/subtract the number of text fields that users can input into and add elements to Expenses or Earnings file
-    //Parameters: ComboBox to add elements to, GridPane to add mpdes to - passes to populateContainerAdd(), String that holds year - passes to populateContainerAdd(), String that holds month - passes to populateContainerAdd(), GridPane to repopulate/reload - passes to populateContainerAdd(), GridPane to repopulate/reload - passes to populateContainerAdd(), GridPane to repopulate/reload - passes to populateContainerAdd(), GridPane to repopulate/reload - passes to populateContainerAdd(), GridPane to repopulate/reload - passes to populateContainerAdd()
-    public void populateComboBoxAdd(ComboBox add, GridPane containerAdd, String year, String month, GridPane expenses, GridPane monthlySummary, GridPane yearlySummary, GridPane earnings, GridPane bonds) {
+    //Parameters: ComboBox to add elements to
+    public void populateComboBoxAdd(ComboBox<String> add) {
         //add elements to ComboBox add
         add.getItems().addAll("Expenses", "Earnings", "Bonds");
         //set default value of ComboBox add
         add.getSelectionModel().select(0);
-
-        //adds funcionality to ComboBox, when an element is selected to something
-        add.getSelectionModel().selectedItemProperty().addListener((v, oldValue, newValue) -> {
-            //calls method to add/subtract number of nodes in container add that are needed to add data to specified file
-            populateContainerAdd(add.getValue().toString(), containerAdd, year, month, expenses, monthlySummary, yearlySummary, earnings, bonds);
-        });
     }
 
     //On change to either one will change add/subtract the number of text fields that users can input into and add elements to Expenses or Earnings file
-    //Parameters: String to determine type of file to add to, GridPane to add data too, String that holds value from ComboBox years, String that holds value from ComboBox months, GirdPane to repopulate/reload, GridPane to repopulate/reload, GridPane to repopulate/reload, GridPane to repopulate/reload, GridPane to repopulate/reload
+    //Parameters: String type to determine type of file to add to, GridPane containerAdd to add data too, String year that holds value from ComboBox years, String month that holds value from ComboBox months, GirdPane expenses to repopulate/reload, GridPane monthlySummary to repopulate/reload, GridPane yearlySummary to repopulate/reload, GridPane earnings to repopulate/reload, GridPane bonds to repopulate/reload
     public void populateContainerAdd(String type, GridPane containerAdd, String year, String month, GridPane expenses, GridPane monthlySummary, GridPane yearlySummary, GridPane earnings, GridPane bonds) {
         //variable to hold file directory
         String expensesFile = getExpensesFile(year, month);
@@ -274,6 +264,14 @@ public class personalFinance extends Application {
             TextField typeOfPurchase = new TextField();
             //button object that will take value from textfields and add to file
             Button add = new Button("Add");
+
+            //add TextFields to ArrayList
+            ArrayList<TextField> arraylist = new ArrayList<TextField>();
+            arraylist.add(name);
+            arraylist.add(amount);
+            arraylist.add(date);
+            arraylist.add(paymentMethod);
+            arraylist.add(typeOfPurchase);
             
             //change the size of textfields
             name.setPrefColumnCount(5);
@@ -294,8 +292,24 @@ public class personalFinance extends Application {
             add.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent e) {
+                    //used to determine if amount is valid
+                    Pattern pAmount = Pattern.compile("[0-9][0-9]*[.][0-9]{2}");
+                    //used to determine if date is valid
+                    Pattern pDate = Pattern.compile("[0-9]{2}[/][0-9]{2}[/][0-9]{4}");
+                    //matches text with pattern
+                    Matcher mAmount = pAmount.matcher(amount.getText());
+                    Matcher mDate = pDate.matcher(date.getText());
+
                     if(name.getText().trim().equals("") || name.getText().isEmpty() || amount.getText().trim().equals("") || amount.getText().isEmpty() || date.getText().trim().equals("") || date.getText().isEmpty() || paymentMethod.getText().trim().equals("") || paymentMethod.getText().isEmpty() || typeOfPurchase.getText().trim().equals("") || typeOfPurchase.getText().isEmpty()) {
                         System.out.println("Please fill out all data forms");
+                    }
+                    //checks to see if amount is valid
+                    else if(!mAmount.matches()) {
+                        System.out.println("Amount is invalid");
+                    }
+                    //checks to see if date is valid
+                    else if(!mDate.matches()) {
+                        System.out.println("Date is invalid");
                     }
                     else {
                         //variable holds temp string to be added to file
@@ -311,12 +325,21 @@ public class personalFinance extends Application {
                             //closes file
                             writer.close();
 
-                            //call method to populate expenses GridPane (reload)
+                            //used to hold values from calculate monthly and yearly summary
+                            Double[][] tempArray;
+
+                            //call method to populate earnings GridPane (reload)
                             populateExpenses(expensesFile, expenses);
-                            //call method to populate monthly summary GridPane (reload)
-                            calculateMonthlySummary(expensesFile, earningsFile, monthlySummary);
-                            //call method to populate yearly summary GridPane (reload)
-                            calculateYearlySummary(yearlySummary, year);
+                            //call method to calculate monthly summary
+                            tempArray = calculateMonthlySummary(expensesFile, earningsFile);
+                            //call method to populate monthly summary (reload)
+                            populateMonthlySummary(monthlySummary, tempArray);
+                            //call method to calculate yearly summary
+                            tempArray = calculateYearlySummary(yearlySummary, year);
+                            //call method to populate yearly summary
+                            populateYearlySummary(yearlySummary, tempArray);
+                            //clears textfields
+                            clearTextFields(arraylist);
                         }
                         catch (IOException exception) {
                             System.out.println(exception);
@@ -341,6 +364,13 @@ public class personalFinance extends Application {
             TextField note = new TextField();
             //button object that will take value from textfields and add to file
             Button add = new Button("Add");
+
+            //add TextFields to ArrayList
+            ArrayList<TextField> arraylist = new ArrayList<TextField>();
+            arraylist.add(earningsType);
+            arraylist.add(amount);
+            arraylist.add(date);
+            arraylist.add(note);
             
             //change the size of textfields
             earningsType.setPrefColumnCount(5);
@@ -359,8 +389,25 @@ public class personalFinance extends Application {
             add.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent e) {
+                    //used to determine if amount is valid
+                    Pattern pAmount = Pattern.compile("[0-9][0-9]*[.][0-9]{2}");
+                    //used to determine if date is valid
+                    Pattern pDate = Pattern.compile("[0-9]{2}[/][0-9]{2}[/][0-9]{4}");
+                    //matches text with pattern
+                    Matcher mAmount = pAmount.matcher(amount.getText());
+                    Matcher mDate = pDate.matcher(date.getText());
+            
+                    //checks to see if TextFields are empty
                     if(earningsType.getText().trim().equals("") || earningsType.getText().isEmpty() || amount.getText().trim().equals("") || amount.getText().isEmpty() || date.getText().trim().equals("") || date.getText().isEmpty() || note.getText().trim().equals("") || note.getText().isEmpty()) {
                         System.out.println("Please fill out all data forms");
+                    }
+                    //checks to see if amount is valid
+                    else if(!mAmount.matches()) {
+                        System.out.println("Amount is invalid");
+                    }
+                    //checks to see if date is valid
+                    else if(!mDate.matches()) {
+                        System.out.println("Date is invalid");
                     }
                     else {
                         //variable holds temp string to be added to file
@@ -375,13 +422,22 @@ public class personalFinance extends Application {
                             writer.append(temp);
                             //closes file
                             writer.close();
+                            
+                            //used to hold values from calculate monthly and yearly summary
+                            Double[][] tempArray;
 
                             //call method to populate earnings GridPane (reload)
                             populateEarnings(earningsFile, earnings);
-                            //call method to populate monthly summary GridPane (reload)
-                            calculateMonthlySummary(expensesFile, earningsFile, monthlySummary);
-                            //call method to populate yearly summary GridPane (reload)
-                            calculateYearlySummary(yearlySummary, year);
+                            //call method to calculate monthly summary
+                            tempArray = calculateMonthlySummary(expensesFile, earningsFile);
+                            //call method to populate monthly summary (reload)
+                            populateMonthlySummary(monthlySummary, tempArray);
+                            //call method to calculate yearly summary
+                            tempArray = calculateYearlySummary(yearlySummary, year);
+                            //call method to populate yearly summary
+                            populateYearlySummary(yearlySummary, tempArray);
+                            //clears textfields
+                            clearTextFields(arraylist);
                         }
                         catch (IOException exception) {
                             System.out.println(exception);
@@ -403,6 +459,12 @@ public class personalFinance extends Application {
             TextField MDate = new TextField();
             //button object that will take value from textfields and add to file
             Button add = new Button("Add");
+
+            //add TextFields to ArrayList
+            ArrayList<TextField> arraylist = new ArrayList<TextField>();
+            arraylist.add(price);
+            arraylist.add(numberOfBonds);
+            arraylist.add(MDate);
             
             //change the size of textfields
             price.setPrefColumnCount(5);
@@ -419,8 +481,31 @@ public class personalFinance extends Application {
             add.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent e) {
+                    //used to determine if price is valid
+                    Pattern pPrice = Pattern.compile("[0-9][0-9][0-9]*[.][0-9]{6}");
+                    //used to determine if number of bonds is valid
+                    Pattern pNumberOfBonds = Pattern.compile("[0-9][0-9]*");
+                    //used to determine if maturity date is valid
+                    Pattern pMDate = Pattern.compile("[0-9]{2}[/][0-9]{2}[/][0-9]{4}");
+                    //matches text with pattern
+                    Matcher mPrice = pPrice.matcher(price.getText());
+                    Matcher mNumberOfBonds = pNumberOfBonds.matcher(numberOfBonds.getText());
+                    Matcher mMDate = pMDate.matcher(MDate.getText());
+
                     if(price.getText().trim().equals("") || price.getText().isEmpty() || numberOfBonds.getText().trim().equals("") || numberOfBonds.getText().isEmpty() || MDate.getText().trim().equals("") || MDate.getText().isEmpty()) {
                         System.out.println("Please fill out all data forms");
+                    }
+                    //check if price is valid
+                    else if(!mPrice.matches()) {
+                        System.out.println("Price is invalid");
+                    }
+                    //check if number of bonds is valid
+                    else if(!mNumberOfBonds.matches()) {
+                        System.out.println("Number of bonds is invalid");
+                    }
+                    //check if maturity date is valid
+                    else if(!mMDate.matches()) {
+                        System.out.println("MDate is invalid");
                     }
                     else {
                         //variable to hold file directory
@@ -440,6 +525,8 @@ public class personalFinance extends Application {
 
                             //call method to populate bond GridPane (reload)
                             populateBonds(bonds);
+                            //clears textfield
+                            clearTextFields(arraylist);
                         }
                         catch (IOException exception) {
                             System.out.println(exception);
@@ -450,8 +537,19 @@ public class personalFinance extends Application {
         }
     }
 
+    //clears the text field located in arraylists
+    //Parameters: ArrayList<TextField> arraylist containing TextFields
+    public void clearTextFields(ArrayList<TextField> arraylist) {
+        //loops through entire arraylist
+        for(TextField tf : arraylist) {
+            //clears textfield
+            tf.clear();
+        }
+    }
+
     //determine expenses file name based off of what is selected in ComboBox years and ComboBox months
-    //Parameters: String year, String month
+    //Parameters: String year containing year, String month containing month
+    //Return: String containing expenses file
     public String getExpensesFile(String year, String month) {
         //array to hold the months of the year
         String monthArray[] = {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"};
@@ -460,7 +558,8 @@ public class personalFinance extends Application {
     }
 
     //determine earnings file name based off of what is seleced in ComboBox eyars and ComboBox months
-    //Parameters: String year, String month
+    //Parameters: String year containing year, String month containing month
+    //Return: String containing earnings file
     public String getEarningsFile(String year, String month) {
         //variable that holds current month
         //array to hold the months of the year
@@ -470,7 +569,7 @@ public class personalFinance extends Application {
     }
 
     //read from expenses file that contains expenses and populate expenses GridPane
-    //Parameters: String (file) to read from, GridPane to add data to
+    //Parameters: String expensesFile to read from, GridPane expenses to add data to
     public void populateExpenses(String expensesFile, GridPane expenses) {
         //clears expenses GridPane
         expenses.getChildren().clear();
@@ -516,13 +615,11 @@ public class personalFinance extends Application {
         catch (FileNotFoundException e) {
             //prints error in command line
             System.out.println(e);
-            //prints error on screen
-            expenses.add(new Label(e.toString()), 0, 0);
         }
     }
 
     //read from earnings file that contians earnings and populates earnings GridPane
-    //Parameters: String (file) to read from, GridPane to add data to
+    //Parameters: String earningsFile to read from, GridPane earnings to add data to
     public void populateEarnings(String earningsFile, GridPane earnings) {
         //clears expenses GridPane
         earnings.getChildren().clear();
@@ -565,13 +662,11 @@ public class personalFinance extends Application {
         catch (FileNotFoundException e) {
             //prints error in command line
             System.out.println(e);
-            //prints error on screen
-            earnings.add(new Label(e.toString()), 0, 0);
         }
     }
 
     //read from arraylist and populates GridPane with stock names, amount, and prices
-    //Parameters: GridPane to add elements to, ArrayList that holds stockNames, ArrayList that holds stockAmount, ArrayList that holds stockPrices
+    //Parameters: GridPane stocks to add elements to, ArrayList<String> stockNames that holds stockNames, ArrayList<String> stockAmount that holds stockAmount, ArrayList<String> stockPrices that holds stockPrices
     public void populateStocks(GridPane stocks, ArrayList<String> stockNames, ArrayList<String> stockAmount, ArrayList<String> stockPrices) {
         //creates DecimalFormat object that determines the number of decimal places
         DecimalFormat df = new DecimalFormat("#.##");
@@ -609,6 +704,7 @@ public class personalFinance extends Application {
     }
 
     //read from file and populates bonds GridPane
+    //Parameters: GridPane bonds to add data to
     public void populateBonds(GridPane bonds) {
         //clear bonds GridPane
         bonds.getChildren().clear();
@@ -692,7 +788,7 @@ public class personalFinance extends Application {
     }
 
     //method that obtains the names and amount of stocks bought
-    //Parameters: ArrayList to add stock names to, ArrayList to add number/amount bought to
+    //Parameters: ArrayList<String> stockNames to add stock names to, ArrayList<STring> stockAmount to add number/amount bought to
     public void getStockNamesAmount(ArrayList<String> stockNames, ArrayList<String> stockAmount) {
         try {
             //creates object scanner that opens up file to read
@@ -719,7 +815,8 @@ public class personalFinance extends Application {
     }
 
     //get stock prices from URL endpoint
-    //Parameters: GridPane to get children from
+    //Parameters: ArrayList<String> stockName containing stock names
+    //Return: String that holds the JSON obtained from API
     public String getStockPrices(ArrayList<String> stockName) {
         //holds the name of stocks to be passed to endpoint
         String stockNames = "";
@@ -765,12 +862,16 @@ public class personalFinance extends Application {
             System.out.println(e);
         }
 
+        //empty stockNames
+        stockNames = "";
+        //display error message when unable to connect to endpoint
+        System.out.println("Unable to connect to enpoint. Check internet");
         //return empty data
         return stockNames;
     }
 
     //parses the read data. will obtain the prices of stocks and places them inside an array list
-    //Parameters: String to read from, ArayList to add prices to, Integer is the size of ArrayList that holds the stock names
+    //Parameters: String readData to read from, ArayList<String> stockPrices to add prices to, Integer stockNameSize is the size of ArrayList that holds the stock names
     public void parseReadData(String readData, ArrayList<String> stockPrices, int stockNamesSize) {
         //variable that holds what value to look for in read data
         String lookFor = "\"delayedPrice\":";
@@ -814,15 +915,9 @@ public class personalFinance extends Application {
     }
 
     //calculates monthly expenses based off of file read
-    //Parameters: String to read file from, GridPane to add data to
-    public void calculateMonthlySummary(String expensesFile, String earningsFile, GridPane monthlySummary) {
-        //clears monthly summary
-        monthlySummary.getChildren().clear();
-        //creates DecimalFormat object that determines the number of decimal places
-        DecimalFormat df = new DecimalFormat("#.##");
-        //rounsd the last positional places of DecimalFormat down
-        df.setRoundingMode(RoundingMode.FLOOR);
-
+    //Parameters: String expensesFile to read file from, String earningsFile to read file from
+    //Return: Double array that holds the expenses and earnings totals
+    public Double[][] calculateMonthlySummary(String expensesFile, String earningsFile) {
         //variable to hold total entertainment expenses
         Double entertainment = Double.valueOf(0.00);
         //variable to hold total investing expenses
@@ -865,9 +960,6 @@ public class personalFinance extends Application {
         earningsType.add("Paycheck");
         earningsType.add("Bond");
         earningsType.add("Other");
-
-        //adds label to GridPane
-        monthlySummary.add(new Label("Monthly Summary:"), 0, 0);
 
         //try to open expenses file
         try {
@@ -911,6 +1003,7 @@ public class personalFinance extends Application {
                         otherExpenses = otherExpenses + amount;
                         break;
                     default:
+                        otherExpenses = otherExpenses + amount;
                         System.out.println(type + ": Not valid");
                         break;
                 }
@@ -920,29 +1013,11 @@ public class personalFinance extends Application {
 
             //calculate total expenses
             totalExpenses = entertainment + investing + bills + gas + groceries + otherExpenses;
-
-            //add elements to GridPane
-            monthlySummary.add(new Label("Entertainment:"), 0, 1);
-            monthlySummary.add(new Label(df.format(entertainment)), 1, 1);
-            monthlySummary.add(new Label("Investing:"), 0, 2);
-            monthlySummary.add(new Label(df.format(investing)), 1, 2);
-            monthlySummary.add(new Label("Bills:"), 0, 3);
-            monthlySummary.add(new Label(df.format(bills)), 1, 3);
-            monthlySummary.add(new Label("Gas:"), 0, 4);
-            monthlySummary.add(new Label(df.format(gas)), 1, 4);
-            monthlySummary.add(new Label("Groceries:"), 0, 5);
-            monthlySummary.add(new Label(df.format(groceries)), 1, 5);
-            monthlySummary.add(new Label("Other:"), 0, 6);
-            monthlySummary.add(new Label(df.format(otherExpenses)), 1, 6);
-            monthlySummary.add(new Label("Total:"), 0, 7);
-            monthlySummary.add(new Label(df.format(totalExpenses)), 1, 7);
         }
         //unable to open expenses file
         catch (FileNotFoundException e) {
             //prints error in command line
             System.out.println(e);
-            //prints error on screen
-            monthlySummary.add(new Label(e.toString()), 0, 0);
         }
 
         //try to open earnings file
@@ -979,46 +1054,35 @@ public class personalFinance extends Application {
                         otherEarnings = otherEarnings + amount;
                         break;
                     default:
+                        otherEarnings = otherEarnings + amount;
                         System.out.println(type + ": Not valid");
                         break;
                 }
             }
-
             //closes scanner
             scanner.close();
 
             //calculate total earnings
             totalEarnings = paycheck + dividend + bond + otherEarnings;
-
-            //add elements to GridPane
-            monthlySummary.add(new Label("Paycheck:"), 2, 1);
-            monthlySummary.add(new Label(df.format(paycheck)), 3, 1);
-            monthlySummary.add(new Label("Dividend:"), 2, 2);
-            monthlySummary.add(new Label(df.format(dividend)), 3, 2);
-            monthlySummary.add(new Label("Bonds:"), 2, 3);
-            monthlySummary.add(new Label(df.format(bond)), 3, 3);
-            monthlySummary.add(new Label("Others:"), 2, 4);
-            monthlySummary.add(new Label(df.format(otherEarnings)), 3, 4);
-            monthlySummary.add(new Label("Total:"), 2, 5);
-            monthlySummary.add(new Label(df.format(totalEarnings)), 3, 5);
         }
         //unable to open earnings files file
         catch (FileNotFoundException e) {
             //prints error in command line
             System.out.println(e);
-            //prints error on screen
-             monthlySummary.add(new Label(e.toString()), 0, 0);
         }
 
-        //add difference between earnings and expenses to GridPane
-        monthlySummary.add(new Label(df.format(totalEarnings - totalExpenses)), 1, 0);
+        //add expenses and earnings variables to 2d array.
+        Double array[][] = {
+            {entertainment, investing, bills, gas, groceries, otherExpenses, totalExpenses}, //expenses
+            {dividend, paycheck, bond, otherEarnings, totalEarnings} //earnings
+        };
+        
+        return array;
     }
 
     //calculates yearly expenses based off of file read
-    //Parameters: GridPane to add data to, String containing current year
-    public void calculateYearlySummary(GridPane yearlySummary, String currentYear) {
-        //clears monthly summary
-        yearlySummary.getChildren().clear();
+    //Parameters: GridPane yearlySummary to add data to, String currentYear containing current year
+    public Double[][] calculateYearlySummary(GridPane yearlySummary, String currentYear) {
         //creates DecimalFormat object that determines the number of decimal places
         DecimalFormat df = new DecimalFormat("#.##");
         //rounsd the last positional places of DecimalFormat down
@@ -1050,148 +1114,131 @@ public class personalFinance extends Application {
         //variable to hold total of all earnings
         Double totalEarnings = Double.valueOf(0.00);
 
-        //arraylist to hold purchase types
-        ArrayList<String> purchaseType = new ArrayList<String>();
-        //prepopulate purchaseTypes with: E - Entertainment, I - Investing, B - Bills, G - Gas, Gr - Groceries, O - Other
-        purchaseType.add("E");
-        purchaseType.add("I");
-        purchaseType.add("B");
-        purchaseType.add("G");
-        purchaseType.add("Gr");
-        purchaseType.add("O");
-
-        //arraylist to hold earnings types
-        ArrayList<String> earningsType = new ArrayList<String>();
-        earningsType.add("Dividend");
-        earningsType.add("Paycheck");
-        earningsType.add("Bond");
-        earningsType.add("Other");
-
         //array to hold the months of the year
         String monthArray[] = {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"};
 
-        //adds label to GridPane
-        yearlySummary.add(new Label("Yearly Summary:"), 0, 0);
-        
-        //for loop that loops through all elements of monthArray
+        //loop through all files
         for(int i = 0; i < 12; i++) {
             //assigns directory path of year + month expenses to variable
             String expensesFile = "files\\" + currentYear + "\\" + (i+1) + "_" + monthArray[i] + "\\" + "expenses.csv";
             //assigns directory path of year + month earnings to variable
             String earningsFile = "files\\" + currentYear + "\\" + (i+1) + "_" + monthArray[i] + "\\" + "earnings.csv";
 
-            //try to open expenses file
-            try {
-                //creates object scanner that opens up file to read
-                Scanner scanner = new Scanner(new File(expensesFile));
-                //splits input by delimiter
-                scanner.useDelimiter("[,\\r\\n]+");
+            //calculate monthly summary
+            Double tempArray[][] = calculateMonthlySummary(expensesFile, earningsFile);
 
-                //while file has another line to parse
-                //string read from file = name,amount,date,purchaseMethod,purcahseType
-                while(scanner.hasNextLine() == true) {
-                    //holds name of purcahse
-                    String name = scanner.next();
-                    //holds amount of purchase
-                    Double amount = Double.parseDouble(scanner.next());
-                    //holds date of purchase
-                    String date = scanner.next();
-                    //holds purchase method
-                    String method = scanner.next();
-                    //holds purchase type
-                    String type = scanner.next();
-                    
-                    //add the purcahse amount to appropriate total depending on purchaseType
-                    switch(type) {
-                        case "E":
-                            entertainment = entertainment + amount;
-                            break;
-                        case "I":
-                            investing = investing + amount;
-                            break;
-                        case "B":
-                            bills = bills + amount;
-                            break;
-                        case "G":
-                            gas = gas + amount;
-                            break;
-                        case "Gr":
-                            groceries = groceries + amount;
-                            break;
-                        case "O":
-                            otherExpenses = otherExpenses + amount;
-                            break;
-                        default:
-                            System.out.println(type + ": Not valid");
-                            break;
-                    }
-                }
-                //closes scanner
-                scanner.close();
-            }
-            //unable to open expenses file
-            catch (FileNotFoundException e) {
-                //prints error in command line
-                System.out.println(e);
-                //prints error on screen
-                yearlySummary.add(new Label(e.toString()), 0, 0);
-            }
+            //obtain expenses from tempArray
+            entertainment = entertainment + tempArray[0][0];
+            investing = investing + tempArray[0][1];
+            bills = bills + tempArray[0][2];
+            gas = gas + tempArray[0][3];
+            groceries = groceries + tempArray[0][4];
+            otherExpenses = otherExpenses + tempArray[0][5];
+            totalExpenses = totalExpenses + tempArray[0][6];
 
-            //try to open earnings file
-            try {
-                //creates object scanner that opens up file to read
-                Scanner scanner = new Scanner(new File(earningsFile));
-                //splits input by delimiter
-                scanner.useDelimiter("[,\\r\\n]+");
-
-                //while file has another line to parse
-                //string read from file = name,amount,date,purchaseMethod,purcahseType
-                while(scanner.hasNextLine()) {
-                    //holds earnings name
-                    String type = scanner.next();
-                    //holds earnings amount
-                    Double amount = Double.parseDouble(scanner.next());
-                    //holds earnings date
-                    String date = scanner.next();
-                    //holds earnings note
-                    String method = scanner.next();
-                    
-                    //add the purcahse amount to appropriate total depending on purchaseType
-                    switch(type) {
-                        case "Dividend":
-                            dividend = dividend + amount;
-                            break;
-                        case "Paycheck":
-                            paycheck = paycheck + amount;
-                            break;
-                        case "Bond":
-                            bond = bond + amount;
-                            break;
-                        case "Other":
-                            otherEarnings = otherEarnings + amount;
-                            break;
-                        default:
-                            System.out.println(type + ": Not valid");
-                            break;
-                    }
-                }
-
-                //closes scanner
-                scanner.close();
-            }
-            //unable to open earnings files file
-            catch (FileNotFoundException e) {
-                //prints error in command line
-                System.out.println(e);
-                //prints error on screen
-                yearlySummary.add(new Label(e.toString()), 0, 0);
-            }
+            //obtain earnings from tempArray
+            dividend = dividend + tempArray[1][0];
+            paycheck = paycheck + tempArray[1][1];
+            bond = bond + tempArray[1][2];
+            otherEarnings= otherEarnings + tempArray[1][3];
+            totalEarnings = totalEarnings + tempArray[1][4];
         }
 
-        //calculate total expenses
-        totalExpenses = entertainment + investing + bills + gas + groceries + otherExpenses;
-        //calculate total earnings
-        totalEarnings = paycheck + dividend + bond + otherEarnings;
+        //add expenses and earnings variables to 2d array.
+        Double array[][] = {
+            {entertainment, investing, bills, gas, groceries, otherExpenses, totalExpenses}, //expenses
+            {dividend, paycheck, bond, otherEarnings, totalEarnings} //earnings
+        };
+
+        return array;
+    }
+
+    //populates monthlySummary GridPane
+    //Parameters: GridPane monthlySummary to populate, Double[][] array to read from
+    public void populateMonthlySummary(GridPane monthlySummary, Double[][] array) {
+        //clears monthly summary
+        monthlySummary.getChildren().clear();
+        //creates DecimalFormat object that determines the number of decimal places
+        DecimalFormat df = new DecimalFormat("#.##");
+        //rounsd the last positional places of DecimalFormat down
+        df.setRoundingMode(RoundingMode.FLOOR);
+
+        //expenses variables
+        Double entertainment = array[0][0];
+        Double investing = array[0][1];
+        Double bills = array[0][2];
+        Double gas = array[0][3];
+        Double groceries = array[0][4];
+        Double otherExpenses = array[0][5];
+        Double totalExpenses = array[0][6];
+
+        //earnings variables
+        Double dividend = array[1][0];
+        Double paycheck = array[1][1];
+        Double bond = array[1][2];
+        Double otherEarnings = array[1][3];
+        Double totalEarnings = array[1][4];
+
+        //adds label to GridPane
+        monthlySummary.add(new Label("Monthly Summary:"), 0, 0);
+        //add elements to GridPane
+        monthlySummary.add(new Label("Entertainment:"), 0, 1);
+        monthlySummary.add(new Label(df.format(entertainment)), 1, 1);
+        monthlySummary.add(new Label("Investing:"), 0, 2);
+        monthlySummary.add(new Label(df.format(investing)), 1, 2);
+        monthlySummary.add(new Label("Bills:"), 0, 3);
+        monthlySummary.add(new Label(df.format(bills)), 1, 3);
+        monthlySummary.add(new Label("Gas:"), 0, 4);
+        monthlySummary.add(new Label(df.format(gas)), 1, 4);
+        monthlySummary.add(new Label("Groceries:"), 0, 5);
+        monthlySummary.add(new Label(df.format(groceries)), 1, 5);
+        monthlySummary.add(new Label("Other:"), 0, 6);
+        monthlySummary.add(new Label(df.format(otherExpenses)), 1, 6);
+        monthlySummary.add(new Label("Total:"), 0, 7);
+        monthlySummary.add(new Label(df.format(totalExpenses)), 1, 7);
+        //add elements to GridPane
+        monthlySummary.add(new Label("Paycheck:"), 2, 1);
+        monthlySummary.add(new Label(df.format(paycheck)), 3, 1);
+        monthlySummary.add(new Label("Dividend:"), 2, 2);
+        monthlySummary.add(new Label(df.format(dividend)), 3, 2);
+        monthlySummary.add(new Label("Bonds:"), 2, 3);
+        monthlySummary.add(new Label(df.format(bond)), 3, 3);
+        monthlySummary.add(new Label("Others:"), 2, 4);
+        monthlySummary.add(new Label(df.format(otherEarnings)), 3, 4);
+        monthlySummary.add(new Label("Total:"), 2, 5);
+        monthlySummary.add(new Label(df.format(totalEarnings)), 3, 5);    
+        //add difference between earnings and expenses to GridPane
+        monthlySummary.add(new Label(df.format(totalEarnings - totalExpenses)), 1, 0);
+    }
+
+    //populates yearlySummary GridPane
+    //Parameters: GridPane yearlySummary to populate, Double[][] array to read from
+    public void populateYearlySummary(GridPane yearlySummary, Double[][] array) {
+        //clears monthly summary
+        yearlySummary.getChildren().clear();
+        //creates DecimalFormat object that determines the number of decimal places
+        DecimalFormat df = new DecimalFormat("#.##");
+        //rounsd the last positional places of DecimalFormat down
+        df.setRoundingMode(RoundingMode.FLOOR);
+
+        //expenses variables
+        Double entertainment = array[0][0];
+        Double investing = array[0][1];
+        Double bills = array[0][2];
+        Double gas = array[0][3];
+        Double groceries = array[0][4];
+        Double otherExpenses = array[0][5];
+        Double totalExpenses = array[0][6];
+
+        //earnings variables
+        Double dividend = array[1][0];
+        Double paycheck = array[1][1];
+        Double bond = array[1][2];
+        Double otherEarnings = array[1][3];
+        Double totalEarnings = array[1][4];
+
+        //adds label to GridPane
+        yearlySummary.add(new Label("Yearly Summary:"), 0, 0);
 
         //add expenses elements to GridPane
         yearlySummary.add(new Label("Entertainment:"), 0, 1);
