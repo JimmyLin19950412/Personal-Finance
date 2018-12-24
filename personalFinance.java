@@ -141,26 +141,36 @@ public class personalFinance extends Application {
             String tempExpensesFile = getExpensesFile(years.getValue().toString(), months.getValue().toString());
             //calls method to obtain earnings file name
             String tempEarningsFile = getEarningsFile(years.getValue().toString(), months.getValue().toString());
+            //temporary array without a meaningful name cause its never used again
+            Double[][] tempArray2;
             //calls method to read the expenses file
             populateExpenses(tempExpensesFile, expenses);
             //calls method to read earnings file
             populateEarnings(tempEarningsFile, earnings);
             //calls method to calculate monthly summary
-            calculateMonthlySummary(tempExpensesFile, tempEarningsFile);
+            tempArray2 = calculateMonthlySummary(tempExpensesFile, tempEarningsFile);
+            //calls method to populate monthly summary
+            populateMonthlySummary(monthlySummary, tempArray2);
             //calls method to calculate yearly summary
-            calculateYearlySummary(yearlySummary, years.getValue().toString());
+            tempArray2 = calculateYearlySummary(yearlySummary, years.getValue().toString());
+            //calls method to populate yearly summary
+            populateYearlySummary(yearlySummary, tempArray2);
         });
         months.getSelectionModel().selectedItemProperty().addListener((v, oldValue, newValue) -> { 
             //calls method to obtain expenses file name
             String tempExpensesFile = getExpensesFile(years.getValue().toString(), months.getValue().toString());
             //calls method to obtain earnings file name
             String tempEarningsFile = getEarningsFile(years.getValue().toString(), months.getValue().toString());
+            //temporary array without a meaningful name cause its never used again
+            Double[][] tempArray2;
             //calls method to read the expenses file
             populateExpenses(tempExpensesFile, expenses);
             //calls method to read earnings file
             populateEarnings(tempEarningsFile, earnings);
             //calls method to calculate monthly summary
-            calculateMonthlySummary(tempExpensesFile, tempEarningsFile);
+            tempArray2 = calculateMonthlySummary(tempExpensesFile, tempEarningsFile);
+            //calls method to populate monthly array
+            populateMonthlySummary(monthlySummary, tempArray2);
         });
         //call method to populate ComboBox add. Adds functionality to them as well
         populateComboBoxAdd(add);
