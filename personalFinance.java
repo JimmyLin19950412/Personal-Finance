@@ -837,10 +837,9 @@ public class personalFinance extends Application {
         }
         //removes the lest character in variable (,)
         stockNames = stockNames.substring(0, stockNames.length()-1);
-        
         try {
             //holds URL for enpoint
-            URL url = new URL("https://api.iextrading.com/1.0/stock/market/batch?symbols=" + stockNames + "&types=delayed-quote&range=ytd");
+            URL url = new URL("https://api.iextrading.com/1.0/stock/market/batch?symbols=" + stockNames + "&types=delayed-quote,stats");
 
             //opens connection. sends a GET request
             HttpURLConnection con = (HttpURLConnection) url.openConnection();
@@ -1051,16 +1050,16 @@ public class personalFinance extends Application {
                 
                 //add the purcahse amount to appropriate total depending on purchaseType
                 switch(type) {
-                    case "Dividend":
+                    case "D":
                         dividend = dividend + amount;
                         break;
-                    case "Paycheck":
+                    case "P":
                         paycheck = paycheck + amount;
                         break;
-                    case "Bond":
+                    case "B":
                         bond = bond + amount;
                         break;
-                    case "Other":
+                    case "O":
                         otherEarnings = otherEarnings + amount;
                         break;
                     default:
@@ -1251,29 +1250,29 @@ public class personalFinance extends Application {
         yearlySummary.add(new Label("Yearly Summary:"), 0, 0);
 
         //add expenses elements to GridPane
-        yearlySummary.add(new Label("Entertainment:"), 0, 1);
+        yearlySummary.add(new Label("(E)ntertainment:"), 0, 1);
         yearlySummary.add(new Label(df.format(entertainment)), 1, 1);
-        yearlySummary.add(new Label("Investing:"), 0, 2);
+        yearlySummary.add(new Label("(I)nvesting:"), 0, 2);
         yearlySummary.add(new Label(df.format(investing)), 1, 2);
-        yearlySummary.add(new Label("Bills:"), 0, 3);
+        yearlySummary.add(new Label("(B)ills:"), 0, 3);
         yearlySummary.add(new Label(df.format(bills)), 1, 3);
-        yearlySummary.add(new Label("Gas:"), 0, 4);
+        yearlySummary.add(new Label("(G)as:"), 0, 4);
         yearlySummary.add(new Label(df.format(gas)), 1, 4);
-        yearlySummary.add(new Label("Groceries:"), 0, 5);
+        yearlySummary.add(new Label("(Gr)oceries:"), 0, 5);
         yearlySummary.add(new Label(df.format(groceries)), 1, 5);
-        yearlySummary.add(new Label("Other:"), 0, 6);
+        yearlySummary.add(new Label("(O)ther:"), 0, 6);
         yearlySummary.add(new Label(df.format(otherExpenses)), 1, 6);
         yearlySummary.add(new Label("Total:"), 0, 7);
         yearlySummary.add(new Label(df.format(totalExpenses)), 1, 7);
 
         //add earnings elements to GridPane
-        yearlySummary.add(new Label("Paycheck:"), 2, 1);
+        yearlySummary.add(new Label("(P)aycheck:"), 2, 1);
         yearlySummary.add(new Label(df.format(paycheck)), 3, 1);
-        yearlySummary.add(new Label("Dividend:"), 2, 2);
+        yearlySummary.add(new Label("(D)ividend:"), 2, 2);
         yearlySummary.add(new Label(df.format(dividend)), 3, 2);
-        yearlySummary.add(new Label("Bonds:"), 2, 3);
+        yearlySummary.add(new Label("(B)onds:"), 2, 3);
         yearlySummary.add(new Label(df.format(bond)), 3, 3);
-        yearlySummary.add(new Label("Others:"), 2, 4);
+        yearlySummary.add(new Label("(O)thers:"), 2, 4);
         yearlySummary.add(new Label(df.format(otherEarnings)), 3, 4);
         yearlySummary.add(new Label("Total:"), 2, 5);
         yearlySummary.add(new Label(df.format(totalEarnings)), 3, 5);
