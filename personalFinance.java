@@ -33,6 +33,12 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
 
+//required for gson
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonObject;
+
 public class personalFinance extends Application {
     //main method. Required when working with VSCode/IDE
     public static void main(String[] args) {
@@ -56,6 +62,10 @@ public class personalFinance extends Application {
         ArrayList<String> stockAmount = new ArrayList<String>();
         //holds the prices of stocks
         ArrayList<String> stockPrices = new ArrayList<String>();
+        //holds dividend rate of stocks
+        ArrayList<String> stockDividendRate = new ArrayList<String>();
+        //holds dividend yield of stocls
+        ArrayList<String> stockDividendYield = new ArrayList<String>();
 
         //ComboBox object that holds years
         ComboBox<String> years = new ComboBox<String>();
@@ -187,9 +197,9 @@ public class personalFinance extends Application {
         //calls getStockPrices me11thod. passing an arraylist of stock names. the method will retrieve the prices of each stock
         readData = getStockPrices(stockNames);
         //calls method to parse read data
-        parseReadData(readData, stockPrices, stockNames.size());
+        parseReadData(readData, stockNames, stockPrices, stockDividendRate, stockDividendYield, stockNames.size());
         //call method to populate GridPane stocks with stock names, stock amount, and stock prices
-        populateStocks(stocks, stockNames, stockAmount, stockPrices);
+        populateStocks(stocks, stockNames, stockAmount, stockPrices, stockDividendYield, stockDividendRate);
         //call method to populate bonds GridPane
         populateBonds(bonds);
 
@@ -676,23 +686,28 @@ public class personalFinance extends Application {
     }
 
     //read from arraylist and populates GridPane with stock names, amount, and prices
-    //Parameters: GridPane stocks to add elements to, ArrayList<String> stockNames that holds stockNames, ArrayList<String> stockAmount that holds stockAmount, ArrayList<String> stockPrices that holds stockPrices
-    public void populateStocks(GridPane stocks, ArrayList<String> stockNames, ArrayList<String> stockAmount, ArrayList<String> stockPrices) {
+    //Parameters: GridPane stocks to add elements to, ArrayList<String> stockNames that holds stockNames, ArrayList<String> stockAmount that holds stockAmount, ArrayList<String> stockPrices that holds stock prices, ArratList<String> stockDividendYield holds stock dividend yield, ArrayList<String> stockDividednRate holds stock dividend rate
+    public void populateStocks(GridPane stocks, ArrayList<String> stockNames, ArrayList<String> stockAmount, ArrayList<String> stockPrices, ArrayList<String> stockDividendYield, ArrayList<String> stockDividendRate) {
         //creates DecimalFormat object that determines the number of decimal places
         DecimalFormat df = new DecimalFormat("#.##");
         //rounsd the last positional places of DecimalFormat down
         df.setRoundingMode(RoundingMode.FLOOR);
-        //variable to hold total
+        //variable to hold total value of stocs
         Double total = Double.valueOf(0.00);
+        //variable to hold portfolio dividend yield
+        Double dYield = Double.valueOf(0.00);
         //variables to determine row position
-        int row = 2;
+        int row = 3;
+        //variable to hold number of stocks owned
+        Double numOfStocks = 0.00;
 
         //add title to stocks GridPane
         stocks.add(new Label("Stocks:"), 0, 0);
-        stocks.add(new Label("Ticker"), 0, 1);
-        stocks.add(new Label("Amount"), 1, 1);
-        stocks.add(new Label("Price"), 2, 1);
-        stocks.add(new Label("Total"), 3, 1);
+        stocks.add(new Label("DYield:"), 0, 1);
+        stocks.add(new Label("Ticker"), 0, 2);
+        stocks.add(new Label("Amount"), 1, 2);
+        stocks.add(new Label("Price"), 2, 2);
+        stocks.add(new Label("Total"), 3, 2);
 
         //for loop that loops through arralylists and adds their values to GridPane
         for(int i = 0; i < stockNames.size(); i++) {
@@ -705,12 +720,19 @@ public class personalFinance extends Application {
             //add total cost of stocks (stock amount * stock prices)
             stocks.add(new Label(df.format(Double.parseDouble(stockAmount.get(i)) * Double.parseDouble(stockPrices.get(i)))), 3, row);
             total = total + (Double.parseDouble(stockAmount.get(i)) * Double.parseDouble(stockPrices.get(i)));
+            dYield = dYield + Double.parseDouble(stockDividendYield.get(i));
+            //increase number of stocks owned by 1
+            numOfStocks++;
             //increase row by 1, new stock name
             row++;
         }
 
         //adds total amount (price) next to title
         stocks.add(new Label(df.format(total)), 1, 0);
+        //add portfolio dividend yield next to title
+        stocks.add(new Label(df.format(dYield/numOfStocks)+"%"), 1, 1);
+        //add expected portfolio dividend per year
+        stocks.add(new Label(df.format(total*dYield/numOfStocks/100)), 2, 1);
     }
 
     //read from file and populates bonds GridPane
@@ -880,46 +902,20 @@ public class personalFinance extends Application {
     }
 
     //parses the read data. will obtain the prices of stocks and places them inside an array list
-    //Parameters: String readData to read from, ArayList<String> stockPrices to add prices to, Integer stockNameSize is the size of ArrayList that holds the stock names
-    public void parseReadData(String readData, ArrayList<String> stockPrices, int stockNamesSize) {
-        //variable that holds what value to look for in read data
-        String lookFor = "\"delayedPrice\":";
-        //variable to hold delimiter for when price of stock ends
-        String delimiter = ",";
-        //temp variable to what is being read
-        String temp = "";
-        //varaible to hold current location of substring
-        int currentLocation = 0;
-        //holds the current size of stockPrices
-        int currentSize = 0;
-        //loops through readData while currentSize is less than stockNamesSize
-        while (currentSize < stockNamesSize) {
-            //if the read data starting at position currentLocation and ending at position currentLocaiton + lookFor.length() is equal to the string that we are looking for (lookFor)
-            if(readData.substring(currentLocation, currentLocation + lookFor.length()).equals(lookFor)) {
-                //set currentLocation to end of lookFor string
-                currentLocation = currentLocation + lookFor.length();
-                //loop that adds characters to temp until it finds the delimiter
-                //while current substring is not equal to delimiter
-                while(!readData.substring(currentLocation, currentLocation + 1).equals(delimiter)) {
-                    //add read character to temp
-                    temp = temp + readData.substring(currentLocation, currentLocation + 1);
-                    //increase currentLocation by 1, move forward 1 position
-                    currentLocation++;
-                }
-                //converts temp to integer and adds it to array list
-                stockPrices.add(temp);
-                //resets temp
-                temp = "";
-                //increase currentLocation by 1, move forward 1 position
-                currentLocation++;
-                //increase crrentSize by 1, found the price of a stock
-                currentSize++;
-            }
-            //if current substring is not equal to what we are looking for (lookFor)
-            else {
-                //increase currentLocation by 1, move forward 1 position
-                currentLocation++;
-            }
+    //Parameters: String readData to read from, ArrayList<String> stockNames to read data from, ArayList<String> stockPrices to add prices to, ArrayList<String> stockDividendRate to add dividend rate to, ArrayList<String> stockDividendYield to add dividend yield to, Integer stockNameSize is the size of ArrayList that holds the stock names
+    public void parseReadData(String readData, ArrayList<String> stockNames, ArrayList<String> stockPrices, ArrayList<String> stockDividendRate, ArrayList<String> stockDividendYield, int stockNamesSize) {
+        //create new Gson object
+        Gson gson = new Gson();
+        //Create new JsonObject from with readData
+        JsonObject json = gson.fromJson(readData, JsonObject.class);
+        //loop through all stock names to get data from
+        for(int i = 0; i < stockNames.size(); i++) {
+            //add stock position i's delayed price to arraylist
+            stockPrices.add(json.getAsJsonObject(stockNames.get(i)).getAsJsonObject("delayed-quote").get("delayedPrice").getAsString());
+            //add stock position i's dividend yield to arraylist
+            stockDividendYield.add(json.getAsJsonObject(stockNames.get(i)).getAsJsonObject("stats").get("dividendYield").getAsString());
+            //add stock position i's dividend rate to arraylist
+            stockDividendRate.add(json.getAsJsonObject(stockNames.get(i)).getAsJsonObject("stats").get("dividendRate").getAsString());
         }
     }
 
