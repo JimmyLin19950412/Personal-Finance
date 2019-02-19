@@ -1,0 +1,15 @@
+Expenses:
+E = Entertainment
+I = Investing
+G = Gas
+B = Bills
+Gr = Groceries
+O = Other
+Anything else = Other
+
+Earnings
+P = Paycheck
+D = Dividend
+B = Bonds/Bills/Notes
+O = Other
+Anything else = Other
