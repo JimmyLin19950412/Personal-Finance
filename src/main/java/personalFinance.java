@@ -35,8 +35,6 @@ import javafx.scene.control.TextField;
 
 //required for gson
 import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
 import com.google.gson.JsonObject;
 
 public class personalFinance extends Application {
@@ -696,6 +694,8 @@ public class personalFinance extends Application {
         Double total = Double.valueOf(0.00);
         //variable to hold portfolio dividend yield
         Double dYield = Double.valueOf(0.00);
+		//arraylist holding total $ amount of a stock
+		ArrayList<String> tempStockTotal = new ArrayList<String>();
         //variables to determine row position
         int row = 3;
         //variable to hold number of stocks owned
@@ -707,19 +707,21 @@ public class personalFinance extends Application {
         stocks.add(new Label("Ticker"), 0, 2);
         stocks.add(new Label("Amount"), 1, 2);
         stocks.add(new Label("Price"), 2, 2);
-        stocks.add(new Label("Total"), 3, 2);
+		stocks.add(new Label("%"), 3, 2);
 
-        //for loop that loops through arralylists and adds their values to GridPane
+        //for loop that loops through arraylists and adds their values to GridPane
         for(int i = 0; i < stockNames.size(); i++) {
             //add stock name to GridPane
             stocks.add(new Label(stockNames.get(i)), 0, row);
             //add stock amount to GridPane
             stocks.add(new Label(stockAmount.get(i)), 1, row);
             //add stock price to Gridpane
-            stocks.add(new Label(stockPrices.get(i)), 2, row);
-            //add total cost of stocks (stock amount * stock prices)
-            stocks.add(new Label(df.format(Double.parseDouble(stockAmount.get(i)) * Double.parseDouble(stockPrices.get(i)))), 3, row);
+            stocks.add(new Label(df.format(Double.parseDouble(stockPrices.get(i)))), 2, row);
+			//add total cost of stocks (stock amount * stock prices) to arraylist
+			tempStockTotal.add(df.format(Double.parseDouble(stockAmount.get(i)) * Double.parseDouble(stockPrices.get(i))));
+			//caluclate total
             total = total + (Double.parseDouble(stockAmount.get(i)) * Double.parseDouble(stockPrices.get(i)));
+			//calculate dividend yield
             dYield = dYield + Double.parseDouble(stockDividendYield.get(i));
             //increase number of stocks owned by 1
             numOfStocks++;
@@ -733,6 +735,17 @@ public class personalFinance extends Application {
         stocks.add(new Label(df.format(dYield/numOfStocks)+"%"), 1, 1);
         //add expected portfolio dividend per year
         stocks.add(new Label(df.format(total*dYield/numOfStocks/100)), 2, 1);
+		
+		//reset row to be used in next for loop
+		row = row - stockNames.size();
+		
+		//calculate % of stock in portfolio
+		//for loops through arraylist
+		for(int i = 0; i < tempStockTotal.size(); i++) {
+			//to obtain stock % of portfolio, divide the total price of a stock by the total amount of portfolio
+			stocks.add(new Label(df.format((Double.parseDouble(tempStockTotal.get(i)) / total) * 100)), 3, row);
+			row++;
+		}
     }
 
     //read from file and populates bonds GridPane
